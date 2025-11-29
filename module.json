@@ -3,7 +3,6 @@
   "title": "Draw Steel Reskinner",
   "description": "A module for reskinning Draw Steel monsters with intuitive UI tools",
   "version": "0.1.0",
-  "author": "stgreenb",
   "authors": [
     {
       "name": "stgreenb",
@@ -19,8 +18,22 @@
   "changelog": "https://github.com/stgreenb/ds-reskinner/blob/main/CHANGELOG.md",
   "compatibility": {
     "minimum": "11",
-    "verified": "12",
-    "maximum": "12"
+    "verified": "13",
+    "maximum": "13"
+  },
+  "relationships": {
+    "systems": [
+      {
+        "id": "draw-steel",
+        "type": "system",
+        "compatibility": {
+          "minimum": "1.0.0",
+          "verified": "1.0.0"
+        }
+      }
+    ],
+    "requires": [],
+    "conflicts": []
   },
   "esmodules": [
     "ds-reskinner.mjs"
@@ -37,11 +50,6 @@
     }
   ],
   "packs": [],
-  "system": [
-    "draw-steel"
-  ],
-  "dependencies": [],
-  "conflicts": [],
   "socket": false,
   "protected": false,
   "coreTranslation": false,
