@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build artifacts ( keeping the main bundle for distribution )
+# ds-reskinner.mjs - needed for Foundry VTT
+# ds-reskinner.mjs.map - needed for debugging
+# css/module.css - needed for Foundry VTT
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
