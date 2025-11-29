@@ -1,0 +1,95 @@
+/**
+ * Draw Steel Reskinner - Main Styles
+ */
+
+/* Reskin Application Styles */
+.reskinner-app {
+  font-family: 'sans-serif';
+}
+
+.reskinner-app .form-group {
+  margin-bottom: 1rem;
+}
+
+.reskinner-app h2 {
+  margin: 0 0 0.5rem 0;
+  color: #4a5568;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 0.5rem;
+}
+
+.reskinner-app .note {
+  font-size: 0.875rem;
+  color: #718096;
+  margin: 0;
+  font-style: italic;
+}
+
+.reskinner-app label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.reskinner-app input[type="text"] {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 0.25rem;
+  font-size: 1rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.reskinner-app input[type="text"]:focus {
+  outline: none;
+  border-color: #4299e1;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+}
+
+.reskinner-app .button-group {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+.reskinner-app button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.reskinner-app .save-btn {
+  background-color: #3182ce;
+  color: white;
+}
+
+.reskinner-app .save-btn:hover {
+  background-color: #2c5282;
+}
+
+.reskinner-app .cancel-btn {
+  background-color: #e2e8f0;
+  color: #4a5568;
+}
+
+.reskinner-app .cancel-btn:hover {
+  background-color: #cbd5e0;
+}
+
+/* Reskin button styling */
+.reskin-actor {
+  background-color: #667eea !important;
+  color: white !important;
+}
+
+.reskin-actor:hover {
+  background-color: #5a67d8 !important;
+}

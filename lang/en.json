@@ -1,0 +1,15 @@
+{
+  "DSRESKINNER": {
+    "Reskin": "Reskin",
+    "ReskinMonster": "Reskin Monster",
+    "ReskinMonsterTitle": "Reskin Monster",
+    "CreateNewMonster": "Create a new monster based on",
+    "OriginalUnchanged": "The original monster will remain unchanged",
+    "MonsterName": "Monster Name",
+    "SaveChanges": "Save Changes",
+    "Cancel": "Cancel",
+    "NameEmptyError": "Monster name cannot be empty",
+    "CreateSuccess": "Monster \"{name}\" has been created successfully",
+    "CreateError": "Failed to create reskinned monster. Please check the console for details."
+  }
+}
