@@ -24,7 +24,10 @@ A Foundry VTT module for the Draw Steel system that provides an intuitive interf
    npm install
    npm run build
    ```
+   _This creates `ds-reskinner.mjs` and `css/module.css` needed by Foundry VTT_
 4. Start Foundry VTT and enable the "Draw Steel Reskinner" module in your world settings
+
+**Note**: The pre-built `ds-reskinner.mjs` and `css/module.css` files are included in this repository, so if you prefer, you can skip the build step for basic testing.
 
 ### Release Installation (Future)
 
