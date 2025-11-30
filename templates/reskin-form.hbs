@@ -13,7 +13,7 @@
   <!-- Damage Type Replacement Section -->
   <div class="form-group damage-type-section">
     <div class="damage-type-header">
-      <button type="button" class="damage-type-toggle" id="damage-type-toggle">
+      <button type="button" class="damage-type-toggle collapsed" id="damage-type-toggle">
         <i class="fas fa-chevron-right"></i>
         {{localize "DSRESKINNER.DamageTypeReplacements"}}
       </button>
@@ -63,7 +63,7 @@
   <!-- Movement Types Section -->
   <div class="form-group movement-type-section">
     <div class="movement-type-header">
-      <button type="button" class="movement-type-toggle" id="movement-type-toggle">
+      <button type="button" class="movement-type-toggle collapsed" id="movement-type-toggle">
         <i class="fas fa-chevron-right"></i>
         {{localize "DSRESKINNER.MovementTypes"}}
       </button>
@@ -91,6 +91,7 @@
             <input type="checkbox" name="hover" {{#if hover}}checked{{/if}}>
             {{localize "DSRESKINNER.Hover"}}
           </label>
+          <small class="hover-hint">{{localize "DSRESKINNER.HoverHint"}}</small>
         </div>
         
         <div class="movement-validation" id="movement-validation">

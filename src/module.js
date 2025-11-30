@@ -29,23 +29,15 @@ function isReskinnableMonster(actor) {
  * Add Reskin button to actor sheet headers
  */
 Hooks.on('getActorSheetHeaderButtons', (sheet, buttons) => {
-  console.log('getActorSheetHeaderButtons hook triggered');
-  console.log('Sheet actor:', sheet.actor);
-  console.log('Is reskinnable?', sheet.actor ? isReskinnableMonster(sheet.actor) : 'No actor found');
-  
   if (!isReskinnableMonster(sheet.actor)) return;
   
-  console.log('Adding Reskin button to actor sheet header');
   buttons.unshift({
     class: 'reskin-actor',
     icon: 'fas fa-palette',
     label: game.i18n.localize('DSRESKINNER.Reskin'),
     onclick: async () => {
-      console.log('Reskin button clicked, creating ReskinApp for:', sheet.actor.name);
       const reskinApp = new ReskinApp(sheet.actor);
-      console.log('ReskinApp instance created from sheet header, calling render...');
       await reskinApp.render(true);
-      console.log('ReskinApp render called and awaited from sheet header');
     }
   });
 });
@@ -54,48 +46,34 @@ Hooks.on('getActorSheetHeaderButtons', (sheet, buttons) => {
  * Add Reskin option to actor context menu (Foundry VTT v13)
  */
 Hooks.on('getActorContextOptions', (html, menuItems) => {
-  console.log('getActorContextOptions called with html element and', menuItems.length, 'existing items');
-  
   // Add the context menu option for reskinning
   menuItems.push({
     name: game.i18n.localize('DSRESKINNER.ReskinMonster'),
     icon: '<i class="fas fa-palette"></i>',
     condition: (li) => {
-      console.log('Condition function called with li element:', li);
       // Get actor ID from the list item's dataset (Foundry V13 way, replacing jQuery .data() method)
       const actorId = li.dataset.documentId || li.dataset.entryId;
       if (!actorId) {
-        console.log('No actor ID found in element dataset');
         return false;
       }
       
       const actor = game.actors.get(actorId);
-      console.log('Found actor in condition:', actor ? {name: actor.name, type: actor.type} : 'none');
-      
-      const result = actor ? isReskinnableMonster(actor) : false;
-      console.log('Condition result:', result);
-      return result;
+      return actor ? isReskinnableMonster(actor) : false;
     },
     callback: async (li) => {
-      console.log('Callback function called with li element:', li);
       // Get actor ID from the list item's dataset (Foundry V13 way, replacing jQuery .data() method)
       const actorId = li.dataset.documentId || li.dataset.entryId;
       if (!actorId) {
-        console.warn('No actor ID found in element dataset');
         return;
       }
       
       const actor = game.actors.get(actorId);
       if (!actor) {
-        console.warn('Could not find actor with ID:', actorId);
         return;
       }
       
-      console.log('Opening reskin app for actor:', actor.name);
       const reskinApp = new ReskinApp(actor);
-      console.log('ReskinApp instance created, calling render...');
       await reskinApp.render(true);
-      console.log('ReskinApp render called and awaited');
     }
   });
 });
@@ -105,11 +83,11 @@ Hooks.on('getActorContextOptions', (html, menuItems) => {
  */
 class DrawSteelReskinner {
   static init() {
-    console.log(`Draw Steel Reskinner | Initializing module version ${MODULE_VERSION} - Enhanced actor detection including DOM traversal when app.context is undefined`);
+    // Module initialization
   }
 
   static ready() {
-    console.log(`Draw Steel Reskinner | Ready - all hooks registered version ${MODULE_VERSION}`);
+    // Module ready
   }
 }
 
@@ -122,5 +100,4 @@ Hooks.on('ready', () => {
   DrawSteelReskinner.ready();
 });
 
-// Log module initialization
-console.log(`Draw Steel Reskinner | Module loaded version ${MODULE_VERSION}`);
+

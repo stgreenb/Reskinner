@@ -35,6 +35,7 @@
     "NoMovementTypes": "No movement types detected in this monster",
     "MovementTypeRequired": "At least one movement type must be selected",
     "Hover": "Hover",
+    "HoverHint": "For flying-type monsters",
     "MovementType": {
       "walk": "Walk",
       "fly": "Fly",

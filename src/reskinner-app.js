@@ -74,16 +74,9 @@ export class ReskinApp extends HandlebarsApplication {
    * @override
    */
   async render(force = false, options = {}) {
-    console.log('ReskinApp | render called with force:', force, 'options:', options);
     
-    // Log before calling parent render to track execution flow
-    console.log('ReskinApp | About to call super.render()');
     
-    // Call the parent render method to ensure proper initialization
     const result = await super.render(force, options);
-    
-    // Log after to verify the render completed
-    console.log('ReskinApp | super.render() completed, result:', result);
     
     return result;
   }
@@ -95,13 +88,7 @@ export class ReskinApp extends HandlebarsApplication {
    * @override
    */
   async _prepareContext(options = {}) {
-    console.log('ReskinApp | _prepareContext called with actor:', this.actor?.name || 'undefined');
-    console.log('ReskinApp | Actor data:', {
-      name: this.actor?.name,
-      id: this.actor?.id,
-      type: this.actor?.type,
-      system: typeof this.actor?.system !== 'undefined' ? 'available' : 'undefined'
-    });
+    
     
     if (!this.actor) {
       throw new Error('ReskinApp | Actor is required but not provided');
@@ -132,7 +119,7 @@ export class ReskinApp extends HandlebarsApplication {
       hover: movementData.hover
     };
     
-    console.log('ReskinApp | Preparing context for template:', 'modules/ds-reskinner/templates/reskin-form.hbs', 'with data:', context);
+    
     
     return context;
   }
@@ -156,18 +143,13 @@ export class ReskinApp extends HandlebarsApplication {
   _onRender(context, options) {
     super._onRender(context, options);
     
-    console.log('ReskinApp | _onRender called with element:', this.element);
-    
     // NOTE: With HandlebarsApplicationMixin, using tag: 'form' or automatic form handlers
     // does not work as expected. Instead we manually attach click listeners to the buttons.
     // Form submit events only fire on actual <form> elements, but our template root is
     // a <section> element due to HandlebarsApplication constraints (single root element)
     const submitBtn = this.element.querySelector('button[data-action="submit"]');
     if (submitBtn) {
-      console.log('ReskinApp | Found submit button! Attaching click handler.');
       submitBtn.addEventListener('click', (event) => this._handleFormSubmit(event));
-    } else {
-      console.log('ReskinApp | ❌ Submit button not found');
     }
     
     // Also handle cancel
@@ -219,8 +201,7 @@ export class ReskinApp extends HandlebarsApplication {
       hoverCheckbox.addEventListener('change', () => this._updateMovementValidation());
     }
     
-    console.log('ReskinApp | Window content element:', this.element?.[0]);
-    console.log('ReskinApp | Application is in DOM:', this.element?.[0] && this.element?.[0].isConnected ? 'yes' : 'no');
+    
   }
 
   /**
@@ -234,7 +215,7 @@ export class ReskinApp extends HandlebarsApplication {
     this.actor = actor;
     this._damageTypeCounts = null;
     this._placeholders = new Map(); // For preventing double-swapping
-    console.log('ReskinApp | Constructor called with actor:', actor?.name || 'undefined');
+    
   }
 
   /**
@@ -255,11 +236,13 @@ export class ReskinApp extends HandlebarsApplication {
       content.style.display = 'block';
       if (icon) icon.classList.remove('fa-chevron-right');
       if (icon) icon.classList.add('fa-chevron-down');
+      if (toggleBtn) toggleBtn.classList.remove('collapsed');
     } else {
       // Hide section
       content.style.display = 'none';
       if (icon) icon.classList.remove('fa-chevron-down');
       if (icon) icon.classList.add('fa-chevron-right');
+      if (toggleBtn) toggleBtn.classList.add('collapsed');
     }
   }
 
@@ -281,11 +264,13 @@ export class ReskinApp extends HandlebarsApplication {
       content.style.display = 'block';
       if (icon) icon.classList.remove('fa-chevron-right');
       if (icon) icon.classList.add('fa-chevron-down');
+      if (toggleBtn) toggleBtn.classList.remove('collapsed');
     } else {
       // Hide section
       content.style.display = 'none';
       if (icon) icon.classList.remove('fa-chevron-down');
       if (icon) icon.classList.add('fa-chevron-right');
+      if (toggleBtn) toggleBtn.classList.add('collapsed');
     }
   }
 
@@ -294,23 +279,14 @@ export class ReskinApp extends HandlebarsApplication {
    */
   _analyzeMovementTypes() {
     const movementData = this._getMovementTypes();
-    console.log('ReskinApp | _analyzeMovementTypes movementData:', movementData);
     
     const analysisDiv = this.element.querySelector('#movement-analysis');
     const controlsDiv = this.element.querySelector('#movement-type-controls');
     const noMovementDiv = this.element.querySelector('#no-movement-types');
-    
-    console.log('ReskinApp | Movement analysis elements found:', {
-      analysisDiv: !!analysisDiv,
-      controlsDiv: !!controlsDiv,
-      noMovementDiv: !!noMovementDiv
-    });
 
     const typesArray = Array.isArray(movementData.types) ? movementData.types : [];
-    console.log('ReskinApp | Types array:', typesArray, 'Length:', typesArray.length);
     
     if (!analysisDiv || !controlsDiv || !noMovementDiv) {
-      console.warn('ReskinApp | Movement analysis elements not found, delaying...');
       // Retry after a short delay
       setTimeout(() => this._analyzeMovementTypes(), 100);
       return;
@@ -318,18 +294,14 @@ export class ReskinApp extends HandlebarsApplication {
     
     if (typesArray.length === 0) {
       // No movement types found - hide controls and show message
-      console.log('ReskinApp | Showing no movement types message');
       analysisDiv.style.display = 'none';
       controlsDiv.style.display = 'none';
       noMovementDiv.style.display = 'block';
     } else {
       // Show analysis and controls
-      console.log('ReskinApp | Showing movement types analysis');
       const movementSummary = typesArray.map(type => 
         game.i18n.localize(`DSRESKINNER.MovementType.${type}`)
       ).join(', ');
-      
-      console.log('ReskinApp | Movement summary:', movementSummary);
       analysisDiv.innerHTML = `<p class="movement-summary">${game.i18n.format('DSRESKINNER.MovementTypeSummary', { types: movementSummary })}</p>`;
       analysisDiv.style.display = 'block';
       noMovementDiv.style.display = 'none';
@@ -349,17 +321,6 @@ export class ReskinApp extends HandlebarsApplication {
    */
   _getMovementTypes() {
     const movement = this.actor.system?.movement || {};
-    console.log('ReskinApp | Raw actor movement data:', {
-      'this.actor.system?.movement': movement,
-      'movement.types': movement.types,
-      'types type': typeof movement.types,
-      'Array.isArray(types)': Array.isArray(movement.types),
-      'types constructor': movement.types?.constructor?.name,
-      'types size': movement.types?.size,
-      'types array from set': Array.from(movement.types || []),
-      'actor id': this.actor.id,
-      'actor name': this.actor.name
-    });
     
     // Handle both Array and Set for movement types
     let types = [];
@@ -377,7 +338,6 @@ export class ReskinApp extends HandlebarsApplication {
       disengage: movement.disengage || 1
     };
     
-    console.log('ReskinApp | Processed movement result:', result);
     return result;
   }
 
@@ -428,7 +388,7 @@ export class ReskinApp extends HandlebarsApplication {
    * Analyze damage types (spec-compliant method name)
    */
   async analyzeDamageTypes() {
-    console.log('ReskinApp | analyzeDamageTypes: Forcing recalc and clearing cache');
+    
     // Clear cache and force recalculation for debugging
     this._damageTypeCounts = null;
     return this._countDamageTypes(true);
@@ -438,7 +398,7 @@ export class ReskinApp extends HandlebarsApplication {
    * Update damage type dropdown options based on current counts
    */
   async _updateDamageOptions() {
-    console.log('ReskinApp | _updateDamageOptions: Analyzing damage types and updating dropdowns');
+    
     
     // Use the spec-compliant method
     const damageCounts = await this.analyzeDamageTypes();
@@ -467,14 +427,13 @@ export class ReskinApp extends HandlebarsApplication {
       targetSelect.appendChild(option);
     });
     
-    console.log('ReskinApp | Dropdown options updated with damage counts:', damageCounts);
+    
   }
 
   /**
    * Update movement type checkboxes based on current actor data
    */
   _updateMovementOptions() {
-    console.log('ReskinApp | _updateMovementOptions: Updating movement checkboxes');
     
     const movementData = this._getMovementTypes();
     
@@ -492,7 +451,7 @@ export class ReskinApp extends HandlebarsApplication {
       hoverCheckbox.checked = movementData.hover;
     }
     
-    console.log('ReskinApp | Movement options updated:', movementData);
+    
   }
 
   /**
@@ -598,7 +557,7 @@ export class ReskinApp extends HandlebarsApplication {
 
       // Replace damage types using placeholder system if requested
       if (sourceDamageType && targetDamageType) {
-        console.log('ReskinApp | Replacing damage types:', sourceDamageType, '->', targetDamageType);
+        
         
         const originalName = this.actor.name || this.actor.data?.name || 'Unknown';
         const nameProtectionPlaceholder = `__PROTECTED_NAME_${Date.now()}__`;
@@ -620,7 +579,7 @@ export class ReskinApp extends HandlebarsApplication {
         newActorData = this._replaceNameInObject(newActorData, nameProtectionPlaceholder, newName.trim());
         newActorData = this._replaceNameInObject(newActorData, originalNamePlaceholder, newName.trim());
         
-        console.log('ReskinApp | All replacements completed');
+        
       } else {
         // No damage replacement, just simple name change
         const originalName = this.actor.name || this.actor.data?.name || 'Unknown';
@@ -642,7 +601,7 @@ export class ReskinApp extends HandlebarsApplication {
         const hoverCheckbox = this.element.querySelector('input[name="hover"]');
         const hoverEnabled = hoverCheckbox ? hoverCheckbox.checked : false;
         
-        console.log('ReskinApp | Applying movement changes:', { selectedTypes, hoverEnabled });
+        
         
         // Update movement types while preserving value and disengage
         if (!newActorData.system.movement) {
@@ -718,7 +677,6 @@ export class ReskinApp extends HandlebarsApplication {
         const oldValue = immunities[oldDamageType];
         immunities[newDamageType] = oldValue;  // Set new damage type
         immunities[oldDamageType] = 0;         // Clear old damage type
-        console.log(`ReskinApp | Swapped immunity: ${oldDamageType}:${oldValue} → ${newDamageType}:${oldValue}`);
       }
     }
     
@@ -730,7 +688,6 @@ export class ReskinApp extends HandlebarsApplication {
         const oldValue = weaknesses[oldDamageType];
         weaknesses[newDamageType] = oldValue;
         weaknesses[oldDamageType] = 0;
-        console.log(`ReskinApp | Swapped weakness: ${oldDamageType}:${oldValue} → ${newDamageType}:${oldValue}`);
       }
     }
     
@@ -744,11 +701,11 @@ export class ReskinApp extends HandlebarsApplication {
    */
   _countDamageTypes(forceRecalc = false) {
     if (!forceRecalc && this._damageTypeCounts) {
-      console.log('ReskinApp | Using cached damage type counts:', this._damageTypeCounts);
+      
       return this._damageTypeCounts;
     }
 
-    console.log('ReskinApp | Counting damage types for actor:', this.actor.name);
+    
     const counts = {};
     const damageTypes = ReskinApp.DAMAGE_TYPES;
     
@@ -759,19 +716,8 @@ export class ReskinApp extends HandlebarsApplication {
 
     // Count damage types in actor data
     const actorData = this.actor.toObject();
-    console.log('ReskinApp | Actor data structure preview:', {
-      name: actorData.name,
-      hasItems: !!actorData.items,
-      itemsCount: actorData.items?.length || 0,
-      hasSystem: !!actorData.system,
-      keys: Object.keys(actorData)
-    });
     
     this._countDamageTypesInObject(actorData, counts);
-    
-    console.log('ReskinApp | Final damage type counts:', counts);
-    const totalDamageTypes = Object.entries(counts).filter(([_, count]) => count > 0).length;
-    console.log('ReskinApp | Total damage types found:', totalDamageTypes);
     
     this._damageTypeCounts = counts;
     return counts;
@@ -798,7 +744,7 @@ export class ReskinApp extends HandlebarsApplication {
         const matches = lowerStr.match(regex);
         if (matches) {
           counts[damageType] += matches.length;
-          console.log(`ReskinApp | ✅ Found ${matches.length} instance(s) of "${damageType}" in ${parentKey}: ${matches.join(', ')}`);
+          
         }
       });
       return; // Don't recurse further on strings
@@ -910,7 +856,6 @@ export class ReskinApp extends HandlebarsApplication {
         if (typeof item === 'string') {
           // Handle direct string matches in arrays (like "types": ["fire"])
           if (item.toLowerCase() === oldDamageType.toLowerCase()) {
-            console.log(`ReskinApp | Direct array replacement: ${item} → ${newDamageType}`);
             return newDamageType;
           }
           
@@ -955,7 +900,6 @@ export class ReskinApp extends HandlebarsApplication {
       if (key === 'types' && Array.isArray(value)) {
         newObj[key] = value.map(type => {
           if (typeof type === 'string' && type.toLowerCase() === oldDamageType.toLowerCase()) {
-            console.log(`ReskinApp | Types array replacement: ${type} → ${newDamageType}`);
             return newDamageType;
           }
           return type;
