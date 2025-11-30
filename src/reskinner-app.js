@@ -24,6 +24,10 @@ export class ReskinApp extends HandlebarsApplication {
         minimizable: true,
         resizable: true  // Changed to true to help with debug visibility
       },
+      form: {
+        submitOnChange: false,
+        closeOnSubmit: false
+      },
       position: {
         width: 400,
         height: 300

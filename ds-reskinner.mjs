@@ -24,6 +24,10 @@ class ReskinApp extends HandlebarsApplication {
         minimizable: true,
         resizable: true  // Changed to true to help with debug visibility
       },
+      form: {
+        submitOnChange: false,
+        closeOnSubmit: false
+      },
       position: {
         width: 400,
         height: 300
@@ -152,11 +156,11 @@ class ReskinApp extends HandlebarsApplication {
 /**
  * Draw Steel Reskinner Module
  * A Foundry VTT module for reskinning Draw Steel monsters
- * Version: 0.1.31 - Fixed HandlebarsApplication context method per API docs
+ * Version: 0.1.32 - Updated configuration for HandlebarsApplication display
  */
 
 // Centralized version reference to ensure consistency across the module
-const MODULE_VERSION = '0.1.31';
+const MODULE_VERSION = '0.1.32';
 
 /**
  * Check if an actor is a monster NPC that can be reskinned
