@@ -3,9 +3,14 @@
  */
 
 /**
+ * Application to be mixed in with Foundry's Handlebars functionality
+ */
+const HandlebarsApplication = foundry.applications.api.HandlebarsApplicationMixin(foundry.applications.api.ApplicationV2);
+
+/**
  * The Reskin application window
  */
-class ReskinApp extends Application {
+class ReskinApp extends HandlebarsApplication {
   /**
    * Create the ReskinApp
    * @param {Actor} actor - The actor to reskin
@@ -22,15 +27,27 @@ class ReskinApp extends Application {
    * @returns {Object} Application options
    * @override
    */
+  /**
+   * Get the content template for the application
+   * @returns {string} Template path
+   * @override
+   */
+  get template() {
+    return 'modules/ds-reskinner/templates/reskin-form.hbs';
+  }
+
   static get defaultOptions() {
-    return mergeObject(super.defaultOptions, {
-      template: 'modules/ds-reskinner/templates/reskin-form.hbs',
-      classes: ['reskinner-app'],
-      width: 400,
-      height: 300,
-      resizable: false,
-      minimizable: true,
-      title: game.i18n.localize('DSRESKINNER.ReskinMonster')
+    return foundry.utils.mergeObject(super.defaultOptions, {
+      window: {
+        title: game.i18n.localize('DSRESKINNER.ReskinMonster'),
+        contentClasses: ['reskinner-app'],
+        minimizable: true,
+        resizable: false
+      },
+      position: {
+        width: 400,
+        height: 300
+      }
     });
   }
 
@@ -39,7 +56,7 @@ class ReskinApp extends Application {
    * @returns {Object} Template data
    * @override
    */
-  getData() {
+  _prepareContext(options) {
     return {
       actor: this.actor,
       actorName: this.actor.name,
@@ -52,11 +69,23 @@ class ReskinApp extends Application {
    * @param {HTMLElement} html - The rendered HTML
    * @override
    */
-  activateListeners(html) {
-    super.activateListeners(html);
+  _activateListeners(html) {
+    super._activateListeners(html);
 
     // Handle form submission
-    html.find('form.reskinner-form').on('submit', this._onFormSubmit.bind(this));
+    // In V2 HandlebarsApplication, we need to bind the form submit handler manually
+    const form = html.querySelector('form.reskinner-form');
+    if (form) {
+      form.addEventListener('submit', this._onFormSubmit.bind(this));
+    }
+    
+    // Add support for the cancel button click
+    const cancelButtons = html.querySelectorAll('.cancel-btn');
+    cancelButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        this.close();
+      });
+    });
   }
 
   /**
@@ -67,7 +96,9 @@ class ReskinApp extends Application {
   async _onFormSubmit(event) {
     event.preventDefault();
     
-    const formData = new FormData(event.target);
+    // Get the form data directly from the event target to access the submitted data
+    const form = event.target;
+    const formData = new FormData(form);
     const newName = formData.get('actorName');
     
     if (!newName || newName.trim() === '') {
@@ -76,13 +107,21 @@ class ReskinApp extends Application {
     }
 
     try {
-      // Clone the actor
-      const clonedActor = await this.actor.clone({
-        name: newName.trim()
+      // Create a new actor based on the current actor's data
+      const sourceData = this.actor.toObject();
+      
+      // Update the name and generate a new ID for the new actor
+      const newActorData = foundry.utils.mergeObject(sourceData, {
+        name: newName.trim(),
+        _id: null, // This ensures a new ID will be generated
+        folder: null, // Don't assign to any specific folder by default
+        ownership: { // Ensure proper ownership defaults
+          default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
+        }
       });
 
       // Create the cloned actor in the actors directory
-      await Actor.create(clonedActor.toObject());
+      await Actor.create(newActorData);
       
       ui.notifications.info(game.i18n.format('DSRESKINNER.CreateSuccess', { name: newName }));
       this.close();
@@ -96,8 +135,11 @@ class ReskinApp extends Application {
 /**
  * Draw Steel Reskinner Module
  * A Foundry VTT module for reskinning Draw Steel monsters
+ * Version: 0.1.25 - Enhanced actor detection and V2 Application framework compatibility
  */
 
+// Centralized version reference to ensure consistency across the module
+const MODULE_VERSION = '0.1.25';
 
 /**
  * Check if an actor is a monster NPC that can be reskinned
@@ -119,8 +161,13 @@ function isReskinnableMonster(actor) {
  * Add Reskin button to actor sheet headers
  */
 Hooks.on('getActorSheetHeaderButtons', (sheet, buttons) => {
+  console.log('getActorSheetHeaderButtons hook triggered');
+  console.log('Sheet actor:', sheet.actor);
+  console.log('Is reskinnable?', sheet.actor ? isReskinnableMonster(sheet.actor) : 'No actor found');
+  
   if (!isReskinnableMonster(sheet.actor)) return;
   
+  console.log('Adding Reskin button to actor sheet header');
   buttons.unshift({
     class: 'reskin-actor',
     icon: 'fas fa-palette',
@@ -133,18 +180,48 @@ Hooks.on('getActorSheetHeaderButtons', (sheet, buttons) => {
 });
 
 /**
- * Add Reskin option to actor directory context menu
+ * Add Reskin option to actor context menu (Foundry VTT v13)
  */
-Hooks.on('getActorDirectoryEntryContext', (html, entryOptions) => {
-  const actor = entryOptions[0]?.document;
-  if (!isReskinnableMonster(actor)) return;
+Hooks.on('getActorContextOptions', (html, menuItems) => {
+  console.log('getActorContextOptions called with html element and', menuItems.length, 'existing items');
   
-  entryOptions.unshift({
-    name: 'Reskin Monster',
+  // Add the context menu option for reskinning
+  menuItems.push({
+    name: game.i18n.localize('DSRESKINNER.ReskinMonster'),
     icon: '<i class="fas fa-palette"></i>',
-    callback: () => {
-      const reskinApp = new ReskinApp(actor);
-      reskinApp.render(true);
+    condition: (li) => {
+      console.log('Condition function called with li element:', li);
+      // Get actor ID from the list item's dataset (Foundry V13 way, replacing jQuery .data() method)
+      const actorId = li.dataset.documentId || li.dataset.entryId;
+      if (!actorId) {
+        console.log('No actor ID found in element dataset');
+        return false;
+      }
+      
+      const actor = game.actors.get(actorId);
+      console.log('Found actor in condition:', actor ? {name: actor.name, type: actor.type} : 'none');
+      
+      const result = actor ? isReskinnableMonster(actor) : false;
+      console.log('Condition result:', result);
+      return result;
+    },
+    callback: (li) => {
+      console.log('Callback function called with li element:', li);
+      // Get actor ID from the list item's dataset (Foundry V13 way, replacing jQuery .data() method)
+      const actorId = li.dataset.documentId || li.dataset.entryId;
+      if (!actorId) {
+        console.warn('No actor ID found in element dataset');
+        return;
+      }
+      
+      const actor = game.actors.get(actorId);
+      if (!actor) {
+        console.warn('Could not find actor with ID:', actorId);
+        return;
+      }
+      
+      console.log('Opening reskin app for actor:', actor.name);
+      new ReskinApp(actor).render(true);
     }
   });
 });
@@ -154,11 +231,11 @@ Hooks.on('getActorDirectoryEntryContext', (html, entryOptions) => {
  */
 class DrawSteelReskinner {
   static init() {
-    console.log('Draw Steel Reskinner | Initializing module');
+    console.log(`Draw Steel Reskinner | Initializing module version ${MODULE_VERSION} - Enhanced actor detection including DOM traversal when app.context is undefined`);
   }
 
   static ready() {
-    console.log('Draw Steel Reskinner | Ready - all hooks registered');
+    console.log(`Draw Steel Reskinner | Ready - all hooks registered version ${MODULE_VERSION}`);
   }
 }
 
@@ -172,5 +249,5 @@ Hooks.on('ready', () => {
 });
 
 // Log module initialization
-console.log('Draw Steel Reskinner | Module loaded');
+console.log(`Draw Steel Reskinner | Module loaded version ${MODULE_VERSION}`);
 //# sourceMappingURL=ds-reskinner.mjs.map

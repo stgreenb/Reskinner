@@ -3,9 +3,14 @@
  */
 
 /**
+ * Application to be mixed in with Foundry's Handlebars functionality
+ */
+const HandlebarsApplication = foundry.applications.api.HandlebarsApplicationMixin(foundry.applications.api.ApplicationV2);
+
+/**
  * The Reskin application window
  */
-export class ReskinApp extends Application {
+export class ReskinApp extends HandlebarsApplication {
   /**
    * Create the ReskinApp
    * @param {Actor} actor - The actor to reskin
@@ -22,15 +27,27 @@ export class ReskinApp extends Application {
    * @returns {Object} Application options
    * @override
    */
+  /**
+   * Get the content template for the application
+   * @returns {string} Template path
+   * @override
+   */
+  get template() {
+    return 'modules/ds-reskinner/templates/reskin-form.hbs';
+  }
+
   static get defaultOptions() {
-    return mergeObject(super.defaultOptions, {
-      template: 'modules/ds-reskinner/templates/reskin-form.hbs',
-      classes: ['reskinner-app'],
-      width: 400,
-      height: 300,
-      resizable: false,
-      minimizable: true,
-      title: game.i18n.localize('DSRESKINNER.ReskinMonster')
+    return foundry.utils.mergeObject(super.defaultOptions, {
+      window: {
+        title: game.i18n.localize('DSRESKINNER.ReskinMonster'),
+        contentClasses: ['reskinner-app'],
+        minimizable: true,
+        resizable: false
+      },
+      position: {
+        width: 400,
+        height: 300
+      }
     });
   }
 
@@ -39,7 +56,7 @@ export class ReskinApp extends Application {
    * @returns {Object} Template data
    * @override
    */
-  getData() {
+  _prepareContext(options) {
     return {
       actor: this.actor,
       actorName: this.actor.name,
@@ -52,11 +69,23 @@ export class ReskinApp extends Application {
    * @param {HTMLElement} html - The rendered HTML
    * @override
    */
-  activateListeners(html) {
-    super.activateListeners(html);
+  _activateListeners(html) {
+    super._activateListeners(html);
 
     // Handle form submission
-    html.find('form.reskinner-form').on('submit', this._onFormSubmit.bind(this));
+    // In V2 HandlebarsApplication, we need to bind the form submit handler manually
+    const form = html.querySelector('form.reskinner-form');
+    if (form) {
+      form.addEventListener('submit', this._onFormSubmit.bind(this));
+    }
+    
+    // Add support for the cancel button click
+    const cancelButtons = html.querySelectorAll('.cancel-btn');
+    cancelButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        this.close();
+      });
+    });
   }
 
   /**
@@ -67,7 +96,9 @@ export class ReskinApp extends Application {
   async _onFormSubmit(event) {
     event.preventDefault();
     
-    const formData = new FormData(event.target);
+    // Get the form data directly from the event target to access the submitted data
+    const form = event.target;
+    const formData = new FormData(form);
     const newName = formData.get('actorName');
     
     if (!newName || newName.trim() === '') {
@@ -76,13 +107,21 @@ export class ReskinApp extends Application {
     }
 
     try {
-      // Clone the actor
-      const clonedActor = await this.actor.clone({
-        name: newName.trim()
+      // Create a new actor based on the current actor's data
+      const sourceData = this.actor.toObject();
+      
+      // Update the name and generate a new ID for the new actor
+      const newActorData = foundry.utils.mergeObject(sourceData, {
+        name: newName.trim(),
+        _id: null, // This ensures a new ID will be generated
+        folder: null, // Don't assign to any specific folder by default
+        ownership: { // Ensure proper ownership defaults
+          default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
+        }
       });
 
       // Create the cloned actor in the actors directory
-      await Actor.create(clonedActor.toObject());
+      await Actor.create(newActorData);
       
       ui.notifications.info(game.i18n.format('DSRESKINNER.CreateSuccess', { name: newName }));
       this.close();
