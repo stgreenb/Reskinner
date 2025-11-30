@@ -151,11 +151,11 @@ class ReskinApp extends HandlebarsApplication {
 /**
  * Draw Steel Reskinner Module
  * A Foundry VTT module for reskinning Draw Steel monsters
- * Version: 0.1.28 - Fixed window visibility issue by enabling resize
+ * Version: 0.1.29 - Fixed async rendering for V2 Applications
  */
 
 // Centralized version reference to ensure consistency across the module
-const MODULE_VERSION = '0.1.28';
+const MODULE_VERSION = '0.1.29';
 
 /**
  * Check if an actor is a monster NPC that can be reskinned
@@ -188,12 +188,12 @@ Hooks.on('getActorSheetHeaderButtons', (sheet, buttons) => {
     class: 'reskin-actor',
     icon: 'fas fa-palette',
     label: game.i18n.localize('DSRESKINNER.Reskin'),
-    onclick: () => {
+    onclick: async () => {
       console.log('Reskin button clicked, creating ReskinApp for:', sheet.actor.name);
       const reskinApp = new ReskinApp(sheet.actor);
       console.log('ReskinApp instance created from sheet header, calling render...');
-      reskinApp.render(true);
-      console.log('ReskinApp render called from sheet header');
+      await reskinApp.render(true);
+      console.log('ReskinApp render called and awaited from sheet header');
     }
   });
 });
@@ -224,7 +224,7 @@ Hooks.on('getActorContextOptions', (html, menuItems) => {
       console.log('Condition result:', result);
       return result;
     },
-    callback: (li) => {
+    callback: async (li) => {
       console.log('Callback function called with li element:', li);
       // Get actor ID from the list item's dataset (Foundry V13 way, replacing jQuery .data() method)
       const actorId = li.dataset.documentId || li.dataset.entryId;
@@ -242,8 +242,8 @@ Hooks.on('getActorContextOptions', (html, menuItems) => {
       console.log('Opening reskin app for actor:', actor.name);
       const reskinApp = new ReskinApp(actor);
       console.log('ReskinApp instance created, calling render...');
-      reskinApp.render(true);
-      console.log('ReskinApp render called');
+      await reskinApp.render(true);
+      console.log('ReskinApp render called and awaited');
     }
   });
 });
