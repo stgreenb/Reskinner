@@ -20,6 +20,7 @@ class ReskinApp extends HandlebarsApplication {
     super(options);
     
     this.actor = actor;
+    console.log('ReskinApp | Constructor called with actor:', actor?.name || 'undefined');
   }
 
   /**
@@ -57,6 +58,14 @@ class ReskinApp extends HandlebarsApplication {
    * @override
    */
   async getData(options) {
+    console.log('ReskinApp | getData called with actor:', this.actor?.name || 'undefined');
+    console.log('ReskinApp | Actor data:', {
+      name: this.actor?.name,
+      id: this.actor?.id,
+      type: this.actor?.type,
+      system: typeof this.actor?.system !== 'undefined' ? 'available' : 'undefined'
+    });
+    
     return {
       actor: this.actor,
       actorName: this.actor.name,
@@ -71,18 +80,25 @@ class ReskinApp extends HandlebarsApplication {
    */
   _activateListeners(html) {
     super._activateListeners(html);
+    
+    console.log('ReskinApp | _activateListeners called with html:', html);
 
     // Handle form submission
     // In V2 HandlebarsApplication, we need to bind the form submit handler manually
     const form = html.querySelector('form.reskinner-form');
+    console.log('ReskinApp | Found form element:', form ? 'yes' : 'no');
     if (form) {
       form.addEventListener('submit', this._onFormSubmit.bind(this));
+      console.log('ReskinApp | Event listener added to form submit');
     }
     
     // Add support for the cancel button click
     const cancelButtons = html.querySelectorAll('.cancel-btn');
-    cancelButtons.forEach(button => {
+    console.log('ReskinApp | Found cancel buttons:', cancelButtons.length);
+    cancelButtons.forEach((button, index) => {
+      console.log('ReskinApp | Adding click listener to cancel button', index);
       button.addEventListener('click', () => {
+        console.log('ReskinApp | Cancel button clicked');
         this.close();
       });
     });
@@ -135,11 +151,11 @@ class ReskinApp extends HandlebarsApplication {
 /**
  * Draw Steel Reskinner Module
  * A Foundry VTT module for reskinning Draw Steel monsters
- * Version: 0.1.26 - Fixed Foundry V13 compatibility with Draw Steel system
+ * Version: 0.1.27 - Added comprehensive logging for debugging
  */
 
 // Centralized version reference to ensure consistency across the module
-const MODULE_VERSION = '0.1.26';
+const MODULE_VERSION = '0.1.27';
 
 /**
  * Check if an actor is a monster NPC that can be reskinned
@@ -173,8 +189,11 @@ Hooks.on('getActorSheetHeaderButtons', (sheet, buttons) => {
     icon: 'fas fa-palette',
     label: game.i18n.localize('DSRESKINNER.Reskin'),
     onclick: () => {
+      console.log('Reskin button clicked, creating ReskinApp for:', sheet.actor.name);
       const reskinApp = new ReskinApp(sheet.actor);
+      console.log('ReskinApp instance created from sheet header, calling render...');
       reskinApp.render(true);
+      console.log('ReskinApp render called from sheet header');
     }
   });
 });
@@ -221,7 +240,10 @@ Hooks.on('getActorContextOptions', (html, menuItems) => {
       }
       
       console.log('Opening reskin app for actor:', actor.name);
-      new ReskinApp(actor).render(true);
+      const reskinApp = new ReskinApp(actor);
+      console.log('ReskinApp instance created, calling render...');
+      reskinApp.render(true);
+      console.log('ReskinApp render called');
     }
   });
 });

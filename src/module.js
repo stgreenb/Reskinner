@@ -1,11 +1,11 @@
 /**
  * Draw Steel Reskinner Module
  * A Foundry VTT module for reskinning Draw Steel monsters
- * Version: 0.1.26 - Fixed Foundry V13 compatibility with Draw Steel system
+ * Version: 0.1.27 - Added comprehensive logging for debugging
  */
 
 // Centralized version reference to ensure consistency across the module
-const MODULE_VERSION = '0.1.26';
+const MODULE_VERSION = '0.1.27';
 
 import { ReskinApp } from './reskinner-app.js';
 
@@ -41,8 +41,11 @@ Hooks.on('getActorSheetHeaderButtons', (sheet, buttons) => {
     icon: 'fas fa-palette',
     label: game.i18n.localize('DSRESKINNER.Reskin'),
     onclick: () => {
+      console.log('Reskin button clicked, creating ReskinApp for:', sheet.actor.name);
       const reskinApp = new ReskinApp(sheet.actor);
+      console.log('ReskinApp instance created from sheet header, calling render...');
       reskinApp.render(true);
+      console.log('ReskinApp render called from sheet header');
     }
   });
 });
@@ -89,7 +92,10 @@ Hooks.on('getActorContextOptions', (html, menuItems) => {
       }
       
       console.log('Opening reskin app for actor:', actor.name);
-      new ReskinApp(actor).render(true);
+      const reskinApp = new ReskinApp(actor);
+      console.log('ReskinApp instance created, calling render...');
+      reskinApp.render(true);
+      console.log('ReskinApp render called');
     }
   });
 });

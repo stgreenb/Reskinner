@@ -20,6 +20,7 @@ export class ReskinApp extends HandlebarsApplication {
     super(options);
     
     this.actor = actor;
+    console.log('ReskinApp | Constructor called with actor:', actor?.name || 'undefined');
   }
 
   /**
@@ -57,6 +58,14 @@ export class ReskinApp extends HandlebarsApplication {
    * @override
    */
   async getData(options) {
+    console.log('ReskinApp | getData called with actor:', this.actor?.name || 'undefined');
+    console.log('ReskinApp | Actor data:', {
+      name: this.actor?.name,
+      id: this.actor?.id,
+      type: this.actor?.type,
+      system: typeof this.actor?.system !== 'undefined' ? 'available' : 'undefined'
+    });
+    
     return {
       actor: this.actor,
       actorName: this.actor.name,
@@ -71,18 +80,25 @@ export class ReskinApp extends HandlebarsApplication {
    */
   _activateListeners(html) {
     super._activateListeners(html);
+    
+    console.log('ReskinApp | _activateListeners called with html:', html);
 
     // Handle form submission
     // In V2 HandlebarsApplication, we need to bind the form submit handler manually
     const form = html.querySelector('form.reskinner-form');
+    console.log('ReskinApp | Found form element:', form ? 'yes' : 'no');
     if (form) {
       form.addEventListener('submit', this._onFormSubmit.bind(this));
+      console.log('ReskinApp | Event listener added to form submit');
     }
     
     // Add support for the cancel button click
     const cancelButtons = html.querySelectorAll('.cancel-btn');
-    cancelButtons.forEach(button => {
+    console.log('ReskinApp | Found cancel buttons:', cancelButtons.length);
+    cancelButtons.forEach((button, index) => {
+      console.log('ReskinApp | Adding click listener to cancel button', index);
       button.addEventListener('click', () => {
+        console.log('ReskinApp | Cancel button clicked');
         this.close();
       });
     });
