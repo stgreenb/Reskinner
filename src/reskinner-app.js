@@ -56,7 +56,7 @@ export class ReskinApp extends HandlebarsApplication {
    * @returns {Object} Template data
    * @override
    */
-  _prepareContext(options) {
+  async getData(options) {
     return {
       actor: this.actor,
       actorName: this.actor.name,
