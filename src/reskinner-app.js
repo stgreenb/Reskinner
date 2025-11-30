@@ -12,18 +12,6 @@ const HandlebarsApplication = foundry.applications.api.HandlebarsApplicationMixi
  */
 export class ReskinApp extends HandlebarsApplication {
   /**
-   * Create the ReskinApp
-   * @param {Actor} actor - The actor to reskin
-   * @param {Object} options - Additional options
-   */
-  constructor(actor, options = {}) {
-    super(options);
-    
-    this.actor = actor;
-    console.log('ReskinApp | Constructor called with actor:', actor?.name || 'undefined');
-  }
-
-  /**
    * Default configuration for the application
    * @returns {Object} Application options
    * @override
@@ -53,12 +41,25 @@ export class ReskinApp extends HandlebarsApplication {
   }
 
   /**
-   * Get the data object for the template
-   * @returns {Object} Template data
+   * Create the ReskinApp
+   * @param {Actor} actor - The actor to reskin
+   * @param {Object} options - Additional options
+   */
+  constructor(actor, options = {}) {
+    super(options);
+    
+    this.actor = actor;
+    console.log('ReskinApp | Constructor called with actor:', actor?.name || 'undefined');
+  }
+
+  /**
+   * Prepare context for the application template
+   * @param {object} options - Options passed to the template rendering function
+   * @returns {object} The template context data
    * @override
    */
-  async getData(options) {
-    console.log('ReskinApp | getData called with actor:', this.actor?.name || 'undefined');
+  async _prepareContext(options) {
+    console.log('ReskinApp | _prepareContext called with actor:', this.actor?.name || 'undefined');
     console.log('ReskinApp | Actor data:', {
       name: this.actor?.name,
       id: this.actor?.id,

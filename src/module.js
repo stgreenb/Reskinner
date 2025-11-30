@@ -1,11 +1,11 @@
 /**
  * Draw Steel Reskinner Module
  * A Foundry VTT module for reskinning Draw Steel monsters
- * Version: 0.1.29 - Fixed async rendering for V2 Applications
+ * Version: 0.1.31 - Fixed HandlebarsApplication context method per API docs
  */
 
 // Centralized version reference to ensure consistency across the module
-const MODULE_VERSION = '0.1.29';
+const MODULE_VERSION = '0.1.31';
 
 import { ReskinApp } from './reskinner-app.js';
 
