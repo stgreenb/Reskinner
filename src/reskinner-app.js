@@ -112,6 +112,8 @@ export class ReskinApp extends HandlebarsApplication {
     
     // Extract token image from actor's prototype token
     const tokenImage = this.actor.prototypeToken?.texture?.src || null;
+    // Extract character art from actor's avatar (img property)
+    const characterArt = this.actor.img || this.actor.data?.img || null;
     
     const context = {
       actor: this.actor,
@@ -120,7 +122,8 @@ export class ReskinApp extends HandlebarsApplication {
       damageTypes: damageTypes,
       movementTypes: movementTypes,
       hover: movementData.hover,
-      tokenImage: tokenImage
+      tokenImage: tokenImage,
+      characterArt: characterArt
     };
     
     
@@ -668,6 +671,13 @@ export class ReskinApp extends HandlebarsApplication {
           newActorData.token.texture = {};
         }
         newActorData.token.texture.src = tokenImagePath.value;
+
+        // TODO: FUTURE - Consider separating token and character art management
+        // Currently using the same image for both token and character art for simplicity
+        // This may be split into separate controls in a future version
+        
+        // Also update character art (img property) with the same image
+        newActorData.img = tokenImagePath.value;
       }
 
       // Finalize the new actor data
