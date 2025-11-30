@@ -5,6 +5,7 @@
 /* Reskin Application Styles */
 .reskinner-app {
   font-family: 'sans-serif';
+  width: 700px; /* Updated from 600px to accommodate image */
 }
 
 .reskinner-app .form-group {
@@ -229,4 +230,91 @@
 
 .reskin-actor:active {
   transform: translateY(0);
+}
+
+/* Token Image Management Styles */
+.token-name-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.token-image-container {
+  flex-shrink: 0;
+  width: 80px;
+  height: 80px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #f0f0f0;
+  border: 2px solid #cbd5e0;
+  cursor: pointer;
+  transition: all 150ms ease;
+  position: relative;
+}
+
+.token-image-container:hover {
+  opacity: 0.8;
+  border-color: #4299e1;
+  transform: scale(1.02);
+}
+
+.token-image-container:focus,
+.token-image-container:focus-within {
+  outline: 2px solid #4299e1;
+  outline-offset: 2px;
+}
+
+.token-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+}
+
+.token-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e2e8f0;
+  color: #718096;
+  border: 2px dashed #cbd5e0;
+  border-radius: 4px;
+  transition: all 150ms ease;
+}
+
+.token-placeholder:hover {
+  background: #cbd5e0;
+  color: #4a5568;
+  border-color: #a0aec0;
+}
+
+.token-placeholder i {
+  font-size: 24px;
+}
+
+.title-content {
+  flex: 1;
+  min-width: 0; /* Prevents flex item from overflowing */
+}
+
+/* Responsive adjustments for different form widths */
+@media (max-width: 750px) {
+  .reskinner-app {
+    width: 100%;
+    max-width: 600px;
+  }
+  
+  .token-name-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .token-image-container {
+    align-self: center;
+  }
 }

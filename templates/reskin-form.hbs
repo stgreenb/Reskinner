@@ -1,8 +1,27 @@
 <section class="reskinner-form">
   <div class="form-group">
-    <h2>{{localize "DSRESKINNER.ReskinMonsterTitle"}}</h2>
-    <p>{{localize "DSRESKINNER.CreateNewMonster"}} <strong>{{actorName}}</strong></p>
-    <p class="note">{{localize "DSRESKINNER.OriginalUnchanged"}}</p>
+    <div class="token-name-header">
+      <div class="token-image-container" id="token-image-container">
+        {{#if tokenImage}}
+          <img src="{{tokenImage}}" alt="{{localize "DSRESKINNER.TokenImageAlt"}}" 
+               class="token-image" id="token-image"
+               aria-label="{{localize "DSRESKINNER.TokenImageAriaLabel"}}"
+               title="{{localize "DSRESKINNER.TokenImageTitle"}}">
+        {{else}}
+          <div class="token-placeholder" id="token-placeholder"
+               aria-label="{{localize "DSRESKINNER.TokenPlaceholderAriaLabel"}}"
+               title="{{localize "DSRESKINNER.TokenImageTitle"}}">
+            <i class="fas fa-image"></i>
+          </div>
+        {{/if}}
+        <input type="hidden" id="token-image-path" name="tokenImagePath" value="{{tokenImage}}">
+      </div>
+      <div class="title-content">
+        <h2>{{localize "DSRESKINNER.ReskinMonsterTitle"}}</h2>
+        <p>{{localize "DSRESKINNER.CreateNewMonster"}} <strong>{{actorName}}</strong></p>
+        <p class="note">{{localize "DSRESKINNER.OriginalUnchanged"}}</p>
+      </div>
+    </div>
   </div>
 
   <div class="form-group">

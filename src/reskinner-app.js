@@ -110,13 +110,17 @@ export class ReskinApp extends HandlebarsApplication {
       selected: movementData.types.includes(type)
     }));
     
+    // Extract token image from actor's prototype token
+    const tokenImage = this.actor.prototypeToken?.texture?.src || null;
+    
     const context = {
       actor: this.actor,
       actorName: this.actor.name || this.actor.data?.name || 'Unknown',
       actorId: this.actor.id || this.actor._id,
       damageTypes: damageTypes,
       movementTypes: movementTypes,
-      hover: movementData.hover
+      hover: movementData.hover,
+      tokenImage: tokenImage
     };
     
     
@@ -200,6 +204,30 @@ export class ReskinApp extends HandlebarsApplication {
     if (hoverCheckbox) {
       hoverCheckbox.addEventListener('change', () => this._updateMovementValidation());
     }
+
+    // Handle token image click to launch FilePicker
+    const tokenImageContainer = this.element.querySelector('#token-image-container');
+    const tokenImage = this.element.querySelector('#token-image');
+    const tokenPlaceholder = this.element.querySelector('#token-placeholder');
+    
+    if (tokenImageContainer) {
+      tokenImageContainer.addEventListener('click', (event) => {
+        event.preventDefault();
+        this._handleTokenImageClick();
+      });
+    }
+    
+    // Also handle keyboard clicks on both image and placeholder
+    [tokenImage, tokenPlaceholder].forEach(element => {
+      if (element) {
+        element.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            this._handleTokenImageClick();
+          }
+        });
+      }
+    });
     
     
   }
@@ -620,6 +648,28 @@ export class ReskinApp extends HandlebarsApplication {
         }
       }
 
+      // Handle token image update if requested
+      const tokenImagePath = this.element.querySelector('#token-image-path');
+      if (tokenImagePath && tokenImagePath.value) {
+        // Update both prototypeToken.texture.src and token.texture.src as specified in design
+        if (!newActorData.prototypeToken) {
+          newActorData.prototypeToken = {};
+        }
+        if (!newActorData.prototypeToken.texture) {
+          newActorData.prototypeToken.texture = {};
+        }
+        newActorData.prototypeToken.texture.src = tokenImagePath.value;
+
+        // Also update token.texture.src for consistency
+        if (!newActorData.token) {
+          newActorData.token = {};
+        }
+        if (!newActorData.token.texture) {
+          newActorData.token.texture = {};
+        }
+        newActorData.token.texture.src = tokenImagePath.value;
+      }
+
       // Finalize the new actor data
       newActorData = foundry.utils.mergeObject(newActorData, {
         _id: null,
@@ -990,6 +1040,126 @@ export class ReskinApp extends HandlebarsApplication {
     });
 
     return newObj;
+  }
+
+  /**
+   * Handle token image click to launch FilePicker
+   */
+  async _handleTokenImageClick() {
+    try {
+      // Create FilePicker instance
+      const fp = new FilePicker({
+        type: 'image',
+        callback: (url) => this._onTokenImageSelected(url),
+        options: {
+          name: 'ds-reskinner-token-picker'
+        }
+      });
+
+      // Check upload permissions before allowing file picker
+      if (fp.canUpload) {
+        await fp.browse([
+          this.actor.prototypeToken?.texture?.src ? 
+          new URL(this.actor.prototypeToken.texture.src).pathname.split('/')[1] : 'data'
+        ]);
+      } else {
+        // Browsing only if no upload permissions
+        await fp.browse(['data']);
+      }
+      
+      // Render the FilePicker
+      await fp.render(true);
+    } catch (error) {
+      console.error('DS-Reskinner | Error opening FilePicker:', error);
+      ui.notifications.error(game.i18n.localize('DSRESKINNER.TokenImagePickerError'));
+    }
+  }
+
+  /**
+   * Handle token image selection from FilePicker
+   * @param {string} url - Selected image URL
+   */
+  async _onTokenImageSelected(url) {
+    if (!url) {
+      console.warn('DS-Reskinner | No image URL provided');
+      return;
+    }
+
+    try {
+      // Validate image URL accessibility
+      await this._validateImageUrl(url);
+      
+      // Update hidden input with new image path
+      const hiddenInput = this.element.querySelector('#token-image-path');
+      if (hiddenInput) {
+        hiddenInput.value = url;
+      }
+
+      // Update the preview image
+      await this._updateTokenImagePreview(url);
+      
+      ui.notifications.info(game.i18n.localize('DSRESKINNER.TokenImageUpdated'));
+    } catch (error) {
+      console.error('DS-Reskinner | Error updating token image:', error);
+      ui.notifications.error(game.i18n.localize('DSRESKINNER.TokenImageUpdateError'));
+    }
+  }
+
+  /**
+   * Validate that image URL is accessible
+   * @param {string} url - Image URL to validate
+   */
+  async _validateImageUrl(url) {
+    try {
+      const response = await fetch(url, { method: 'HEAD' });
+      if (!response.ok) {
+        throw new Error(`Image not accessible: ${response.status}`);
+      }
+    } catch (error) {
+      throw new Error(`Failed to validate image URL: ${error.message}`);
+    }
+  }
+
+  /**
+   * Update the token image preview in the form
+   * @param {string} imageUrl - New image URL
+   */
+  async _updateTokenImagePreview(imageUrl) {
+    const tokenImageContainer = this.element.querySelector('#token-image-container');
+    
+    if (!tokenImageContainer) return;
+
+    // Replace placeholder with image or update existing image
+    let imageElement = tokenImageContainer.querySelector('#token-image');
+    let placeholderElement = tokenImageContainer.querySelector('#token-placeholder');
+    
+    if (imageUrl) {
+      if (imageElement) {
+        // Update existing image
+        imageElement.src = imageUrl;
+        imageElement.style.display = 'block';
+      } else {
+        // Create new image element
+        const newImage = document.createElement('img');
+        newImage.id = 'token-image';
+        newImage.className = 'token-image';
+        newImage.src = imageUrl;
+        newImage.alt = game.i18n.localize('DSRESKINNER.TokenImageAlt');
+        newImage.setAttribute('aria-label', game.i18n.localize('DSRESKINNER.TokenImageAriaLabel'));
+        newImage.setAttribute('title', game.i18n.localize('DSRESKINNER.TokenImageTitle'));
+        
+        if (placeholderElement) {
+          tokenImageContainer.replaceChild(newImage, placeholderElement);
+        } else {
+          tokenImageContainer.appendChild(newImage);
+        }
+      }
+    } else if (placeholderElement) {
+      // Show placeholder if no image
+      if (imageElement) {
+        imageElement.style.display = 'none';
+      }
+    }
   }
 
 

@@ -29,6 +29,13 @@ class ReskinApp extends HandlebarsApplication {
   ];
   
   /**
+   * Movement type constants for Draw Steel system
+   */
+  static MOVEMENT_TYPES = [
+    'walk', 'fly', 'swim', 'burrow', 'climb', 'teleport'
+  ];
+  
+  /**
    * Define action handlers for this application
    */
   static ACTIONS = {
@@ -67,16 +74,9 @@ class ReskinApp extends HandlebarsApplication {
    * @override
    */
   async render(force = false, options = {}) {
-    console.log('ReskinApp | render called with force:', force, 'options:', options);
     
-    // Log before calling parent render to track execution flow
-    console.log('ReskinApp | About to call super.render()');
     
-    // Call the parent render method to ensure proper initialization
     const result = await super.render(force, options);
-    
-    // Log after to verify the render completed
-    console.log('ReskinApp | super.render() completed, result:', result);
     
     return result;
   }
@@ -88,13 +88,7 @@ class ReskinApp extends HandlebarsApplication {
    * @override
    */
   async _prepareContext(options = {}) {
-    console.log('ReskinApp | _prepareContext called with actor:', this.actor?.name || 'undefined');
-    console.log('ReskinApp | Actor data:', {
-      name: this.actor?.name,
-      id: this.actor?.id,
-      type: this.actor?.type,
-      system: typeof this.actor?.system !== 'undefined' ? 'available' : 'undefined'
-    });
+    
     
     if (!this.actor) {
       throw new Error('ReskinApp | Actor is required but not provided');
@@ -107,14 +101,29 @@ class ReskinApp extends HandlebarsApplication {
       count: 0 // Will be populated when section is expanded
     }));
     
+    // Get actor's actual movement data
+    const movementData = this._getMovementTypes();
+    
+    // Initialize movement types for initial render with proper selection state
+    const movementTypes = ReskinApp.MOVEMENT_TYPES.map(type => ({
+      type,
+      selected: movementData.types.includes(type)
+    }));
+    
+    // Extract token image from actor's prototype token
+    const tokenImage = this.actor.prototypeToken?.texture?.src || null;
+    
     const context = {
       actor: this.actor,
       actorName: this.actor.name || this.actor.data?.name || 'Unknown',
       actorId: this.actor.id || this.actor._id,
-      damageTypes: damageTypes
+      damageTypes: damageTypes,
+      movementTypes: movementTypes,
+      hover: movementData.hover,
+      tokenImage: tokenImage
     };
     
-    console.log('ReskinApp | Preparing context for template:', 'modules/ds-reskinner/templates/reskin-form.hbs', 'with data:', context);
+    
     
     return context;
   }
@@ -138,18 +147,13 @@ class ReskinApp extends HandlebarsApplication {
   _onRender(context, options) {
     super._onRender(context, options);
     
-    console.log('ReskinApp | _onRender called with element:', this.element);
-    
     // NOTE: With HandlebarsApplicationMixin, using tag: 'form' or automatic form handlers
     // does not work as expected. Instead we manually attach click listeners to the buttons.
     // Form submit events only fire on actual <form> elements, but our template root is
     // a <section> element due to HandlebarsApplication constraints (single root element)
     const submitBtn = this.element.querySelector('button[data-action="submit"]');
     if (submitBtn) {
-      console.log('ReskinApp | Found submit button! Attaching click handler.');
       submitBtn.addEventListener('click', (event) => this._handleFormSubmit(event));
-    } else {
-      console.log('ReskinApp | ❌ Submit button not found');
     }
     
     // Also handle cancel
@@ -170,6 +174,15 @@ class ReskinApp extends HandlebarsApplication {
       });
     }
 
+    // Handle movement type section toggle
+    const movementToggleBtn = this.element.querySelector('#movement-type-toggle');
+    if (movementToggleBtn) {
+      movementToggleBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        this._toggleMovementSection();
+      });
+    }
+
     // Handle damage type selection changes
     const sourceSelect = this.element.querySelector('#source-damage-type');
     const targetSelect = this.element.querySelector('#target-damage-type');
@@ -179,9 +192,44 @@ class ReskinApp extends HandlebarsApplication {
     if (targetSelect) {
       targetSelect.addEventListener('change', () => this._updateDamageValidation());
     }
+
+    // Handle movement type checkbox changes
+    const movementCheckboxes = this.element.querySelectorAll('input[name="movementTypes"]');
+    movementCheckboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', () => this._updateMovementValidation());
+    });
+
+    // Handle hover checkbox change
+    const hoverCheckbox = this.element.querySelector('input[name="hover"]');
+    if (hoverCheckbox) {
+      hoverCheckbox.addEventListener('change', () => this._updateMovementValidation());
+    }
+
+    // Handle token image click to launch FilePicker
+    const tokenImageContainer = this.element.querySelector('#token-image-container');
+    const tokenImage = this.element.querySelector('#token-image');
+    const tokenPlaceholder = this.element.querySelector('#token-placeholder');
     
-    console.log('ReskinApp | Window content element:', this.element?.[0]);
-    console.log('ReskinApp | Application is in DOM:', this.element?.[0] && this.element?.[0].isConnected ? 'yes' : 'no');
+    if (tokenImageContainer) {
+      tokenImageContainer.addEventListener('click', (event) => {
+        event.preventDefault();
+        this._handleTokenImageClick();
+      });
+    }
+    
+    // Also handle keyboard clicks on both image and placeholder
+    [tokenImage, tokenPlaceholder].forEach(element => {
+      if (element) {
+        element.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            this._handleTokenImageClick();
+          }
+        });
+      }
+    });
+    
+    
   }
 
   /**
@@ -195,7 +243,7 @@ class ReskinApp extends HandlebarsApplication {
     this.actor = actor;
     this._damageTypeCounts = null;
     this._placeholders = new Map(); // For preventing double-swapping
-    console.log('ReskinApp | Constructor called with actor:', actor?.name || 'undefined');
+    
   }
 
   /**
@@ -216,12 +264,109 @@ class ReskinApp extends HandlebarsApplication {
       content.style.display = 'block';
       if (icon) icon.classList.remove('fa-chevron-right');
       if (icon) icon.classList.add('fa-chevron-down');
+      if (toggleBtn) toggleBtn.classList.remove('collapsed');
     } else {
       // Hide section
       content.style.display = 'none';
       if (icon) icon.classList.remove('fa-chevron-down');
       if (icon) icon.classList.add('fa-chevron-right');
+      if (toggleBtn) toggleBtn.classList.add('collapsed');
     }
+  }
+
+  /**
+   * Toggle movement type section visibility and analyze movement types
+   */
+  _toggleMovementSection() {
+    const content = this.element.querySelector('#movement-type-content');
+    const toggleBtn = this.element.querySelector('#movement-type-toggle');
+    const icon = toggleBtn?.querySelector('i');
+    
+    if (!content) return;
+
+    const isHidden = content.style.display === 'none';
+    
+    if (isHidden) {
+      // Show section and analyze movement types
+      this._analyzeMovementTypes();
+      content.style.display = 'block';
+      if (icon) icon.classList.remove('fa-chevron-right');
+      if (icon) icon.classList.add('fa-chevron-down');
+      if (toggleBtn) toggleBtn.classList.remove('collapsed');
+    } else {
+      // Hide section
+      content.style.display = 'none';
+      if (icon) icon.classList.remove('fa-chevron-down');
+      if (icon) icon.classList.add('fa-chevron-right');
+      if (toggleBtn) toggleBtn.classList.add('collapsed');
+    }
+  }
+
+  /**
+   * Analyze movement types and update UI accordingly
+   */
+  _analyzeMovementTypes() {
+    const movementData = this._getMovementTypes();
+    
+    const analysisDiv = this.element.querySelector('#movement-analysis');
+    const controlsDiv = this.element.querySelector('#movement-type-controls');
+    const noMovementDiv = this.element.querySelector('#no-movement-types');
+
+    const typesArray = Array.isArray(movementData.types) ? movementData.types : [];
+    
+    if (!analysisDiv || !controlsDiv || !noMovementDiv) {
+      // Retry after a short delay
+      setTimeout(() => this._analyzeMovementTypes(), 100);
+      return;
+    }
+    
+    if (typesArray.length === 0) {
+      // No movement types found - hide controls and show message
+      analysisDiv.style.display = 'none';
+      controlsDiv.style.display = 'none';
+      noMovementDiv.style.display = 'block';
+    } else {
+      // Show analysis and controls
+      const movementSummary = typesArray.map(type => 
+        game.i18n.localize(`DSRESKINNER.MovementType.${type}`)
+      ).join(', ');
+      analysisDiv.innerHTML = `<p class="movement-summary">${game.i18n.format('DSRESKINNER.MovementTypeSummary', { types: movementSummary })}</p>`;
+      analysisDiv.style.display = 'block';
+      noMovementDiv.style.display = 'none';
+      
+      // Update checkboxes
+      this._updateMovementOptions();
+      
+      // Show controls after a brief delay
+      setTimeout(() => {
+        controlsDiv.style.display = 'block';
+      }, 500);
+    }
+  }
+
+  /**
+   * Get current movement types from actor
+   */
+  _getMovementTypes() {
+    const movement = this.actor.system?.movement || {};
+    
+    // Handle both Array and Set for movement types
+    let types = [];
+    if (Array.isArray(movement.types)) {
+      types = movement.types;
+    } else if (movement.types && typeof movement.types === 'object' && movement.types.constructor.name === 'Set') {
+      // Convert Set to Array
+      types = Array.from(movement.types);
+    }
+    
+    const result = {
+      types: types,
+      hover: !!movement.hover,
+      value: movement.value || 0,
+      disengage: movement.disengage || 1
+    };
+    
+    return result;
   }
 
   /**
@@ -271,7 +416,7 @@ class ReskinApp extends HandlebarsApplication {
    * Analyze damage types (spec-compliant method name)
    */
   async analyzeDamageTypes() {
-    console.log('ReskinApp | analyzeDamageTypes: Forcing recalc and clearing cache');
+    
     // Clear cache and force recalculation for debugging
     this._damageTypeCounts = null;
     return this._countDamageTypes(true);
@@ -281,7 +426,7 @@ class ReskinApp extends HandlebarsApplication {
    * Update damage type dropdown options based on current counts
    */
   async _updateDamageOptions() {
-    console.log('ReskinApp | _updateDamageOptions: Analyzing damage types and updating dropdowns');
+    
     
     // Use the spec-compliant method
     const damageCounts = await this.analyzeDamageTypes();
@@ -310,7 +455,31 @@ class ReskinApp extends HandlebarsApplication {
       targetSelect.appendChild(option);
     });
     
-    console.log('ReskinApp | Dropdown options updated with damage counts:', damageCounts);
+    
+  }
+
+  /**
+   * Update movement type checkboxes based on current actor data
+   */
+  _updateMovementOptions() {
+    
+    const movementData = this._getMovementTypes();
+    
+    // Update movement type checkboxes
+    ReskinApp.MOVEMENT_TYPES.forEach(type => {
+      const checkbox = this.element.querySelector(`input[name="movementTypes"][value="${type}"]`);
+      if (checkbox) {
+        checkbox.checked = movementData.types.includes(type);
+      }
+    });
+    
+    // Update hover checkbox
+    const hoverCheckbox = this.element.querySelector('input[name="hover"]');
+    if (hoverCheckbox) {
+      hoverCheckbox.checked = movementData.hover;
+    }
+    
+    
   }
 
   /**
@@ -350,6 +519,29 @@ class ReskinApp extends HandlebarsApplication {
         })}</p>`;
       }
     }
+  }
+
+  /**
+   * Update movement type validation
+   */
+  _updateMovementValidation() {
+    const validationDiv = this.element.querySelector('#movement-validation');
+    if (!validationDiv) return;
+
+    // Get checked movement types
+    const checkedBoxes = this.element.querySelectorAll('input[name="movementTypes"]:checked');
+    const selectedTypes = Array.from(checkedBoxes).map(cb => cb.value);
+
+    // Clear previous validation
+    validationDiv.innerHTML = '';
+
+    if (selectedTypes.length === 0) {
+      // No movement types selected - show error
+      validationDiv.innerHTML = `<p class="error">${game.i18n.localize('DSRESKINNER.MovementTypeRequired')}</p>`;
+      return false;
+    }
+
+    return true;
   }
 
   /**
@@ -393,7 +585,7 @@ class ReskinApp extends HandlebarsApplication {
 
       // Replace damage types using placeholder system if requested
       if (sourceDamageType && targetDamageType) {
-        console.log('ReskinApp | Replacing damage types:', sourceDamageType, '->', targetDamageType);
+        
         
         const originalName = this.actor.name || this.actor.data?.name || 'Unknown';
         const nameProtectionPlaceholder = `__PROTECTED_NAME_${Date.now()}__`;
@@ -415,11 +607,67 @@ class ReskinApp extends HandlebarsApplication {
         newActorData = this._replaceNameInObject(newActorData, nameProtectionPlaceholder, newName.trim());
         newActorData = this._replaceNameInObject(newActorData, originalNamePlaceholder, newName.trim());
         
-        console.log('ReskinApp | All replacements completed');
+        
       } else {
         // No damage replacement, just simple name change
         const originalName = this.actor.name || this.actor.data?.name || 'Unknown';
         newActorData = this._replaceNameInObject(newActorData, originalName, newName.trim());
+      }
+
+      // Apply movement type changes if requested
+      const movementSectionOpen = this.element.querySelector('#movement-type-content').style.display !== 'none';
+      if (movementSectionOpen) {
+        // Validate movement types selection
+        if (!this._updateMovementValidation()) {
+          ui.notifications.error(game.i18n.localize('DSRESKINNER.MovementTypeRequired'));
+          return;
+        }
+        
+        // Get movement type selections
+        const checkedBoxes = this.element.querySelectorAll('input[name="movementTypes"]:checked');
+        const selectedTypes = Array.from(checkedBoxes).map(cb => cb.value);
+        const hoverCheckbox = this.element.querySelector('input[name="hover"]');
+        const hoverEnabled = hoverCheckbox ? hoverCheckbox.checked : false;
+        
+        
+        
+        // Update movement types while preserving value and disengage
+        if (!newActorData.system.movement) {
+          newActorData.system.movement = {};
+        }
+        
+        newActorData.system.movement.types = selectedTypes;
+        newActorData.system.movement.hover = hoverEnabled;
+        
+        // Preserve existing value and disengage if they exist
+        if (newActorData.system.movement.value === undefined && this.actor.system?.movement?.value !== undefined) {
+          newActorData.system.movement.value = this.actor.system.movement.value;
+        }
+        if (newActorData.system.movement.disengage === undefined && this.actor.system?.movement?.disengage !== undefined) {
+          newActorData.system.movement.disengage = this.actor.system.movement.disengage;
+        }
+      }
+
+      // Handle token image update if requested
+      const tokenImagePath = this.element.querySelector('#token-image-path');
+      if (tokenImagePath && tokenImagePath.value) {
+        // Update both prototypeToken.texture.src and token.texture.src as specified in design
+        if (!newActorData.prototypeToken) {
+          newActorData.prototypeToken = {};
+        }
+        if (!newActorData.prototypeToken.texture) {
+          newActorData.prototypeToken.texture = {};
+        }
+        newActorData.prototypeToken.texture.src = tokenImagePath.value;
+
+        // Also update token.texture.src for consistency
+        if (!newActorData.token) {
+          newActorData.token = {};
+        }
+        if (!newActorData.token.texture) {
+          newActorData.token.texture = {};
+        }
+        newActorData.token.texture.src = tokenImagePath.value;
       }
 
       // Finalize the new actor data
@@ -479,7 +727,6 @@ class ReskinApp extends HandlebarsApplication {
         const oldValue = immunities[oldDamageType];
         immunities[newDamageType] = oldValue;  // Set new damage type
         immunities[oldDamageType] = 0;         // Clear old damage type
-        console.log(`ReskinApp | Swapped immunity: ${oldDamageType}:${oldValue} → ${newDamageType}:${oldValue}`);
       }
     }
     
@@ -491,7 +738,6 @@ class ReskinApp extends HandlebarsApplication {
         const oldValue = weaknesses[oldDamageType];
         weaknesses[newDamageType] = oldValue;
         weaknesses[oldDamageType] = 0;
-        console.log(`ReskinApp | Swapped weakness: ${oldDamageType}:${oldValue} → ${newDamageType}:${oldValue}`);
       }
     }
     
@@ -505,11 +751,11 @@ class ReskinApp extends HandlebarsApplication {
    */
   _countDamageTypes(forceRecalc = false) {
     if (!forceRecalc && this._damageTypeCounts) {
-      console.log('ReskinApp | Using cached damage type counts:', this._damageTypeCounts);
+      
       return this._damageTypeCounts;
     }
 
-    console.log('ReskinApp | Counting damage types for actor:', this.actor.name);
+    
     const counts = {};
     const damageTypes = ReskinApp.DAMAGE_TYPES;
     
@@ -520,19 +766,8 @@ class ReskinApp extends HandlebarsApplication {
 
     // Count damage types in actor data
     const actorData = this.actor.toObject();
-    console.log('ReskinApp | Actor data structure preview:', {
-      name: actorData.name,
-      hasItems: !!actorData.items,
-      itemsCount: actorData.items?.length || 0,
-      hasSystem: !!actorData.system,
-      keys: Object.keys(actorData)
-    });
     
     this._countDamageTypesInObject(actorData, counts);
-    
-    console.log('ReskinApp | Final damage type counts:', counts);
-    const totalDamageTypes = Object.entries(counts).filter(([_, count]) => count > 0).length;
-    console.log('ReskinApp | Total damage types found:', totalDamageTypes);
     
     this._damageTypeCounts = counts;
     return counts;
@@ -559,7 +794,7 @@ class ReskinApp extends HandlebarsApplication {
         const matches = lowerStr.match(regex);
         if (matches) {
           counts[damageType] += matches.length;
-          console.log(`ReskinApp | ✅ Found ${matches.length} instance(s) of "${damageType}" in ${parentKey}: ${matches.join(', ')}`);
+          
         }
       });
       return; // Don't recurse further on strings
@@ -671,7 +906,6 @@ class ReskinApp extends HandlebarsApplication {
         if (typeof item === 'string') {
           // Handle direct string matches in arrays (like "types": ["fire"])
           if (item.toLowerCase() === oldDamageType.toLowerCase()) {
-            console.log(`ReskinApp | Direct array replacement: ${item} → ${newDamageType}`);
             return newDamageType;
           }
           
@@ -716,7 +950,6 @@ class ReskinApp extends HandlebarsApplication {
       if (key === 'types' && Array.isArray(value)) {
         newObj[key] = value.map(type => {
           if (typeof type === 'string' && type.toLowerCase() === oldDamageType.toLowerCase()) {
-            console.log(`ReskinApp | Types array replacement: ${type} → ${newDamageType}`);
             return newDamageType;
           }
           return type;
@@ -809,6 +1042,126 @@ class ReskinApp extends HandlebarsApplication {
     return newObj;
   }
 
+  /**
+   * Handle token image click to launch FilePicker
+   */
+  async _handleTokenImageClick() {
+    try {
+      // Create FilePicker instance
+      const fp = new FilePicker({
+        type: 'image',
+        callback: (url) => this._onTokenImageSelected(url),
+        options: {
+          name: 'ds-reskinner-token-picker'
+        }
+      });
+
+      // Check upload permissions before allowing file picker
+      if (fp.canUpload) {
+        await fp.browse([
+          this.actor.prototypeToken?.texture?.src ? 
+          new URL(this.actor.prototypeToken.texture.src).pathname.split('/')[1] : 'data'
+        ]);
+      } else {
+        // Browsing only if no upload permissions
+        await fp.browse(['data']);
+      }
+      
+      // Render the FilePicker
+      await fp.render(true);
+    } catch (error) {
+      console.error('DS-Reskinner | Error opening FilePicker:', error);
+      ui.notifications.error(game.i18n.localize('DSRESKINNER.TokenImagePickerError'));
+    }
+  }
+
+  /**
+   * Handle token image selection from FilePicker
+   * @param {string} url - Selected image URL
+   */
+  async _onTokenImageSelected(url) {
+    if (!url) {
+      console.warn('DS-Reskinner | No image URL provided');
+      return;
+    }
+
+    try {
+      // Validate image URL accessibility
+      await this._validateImageUrl(url);
+      
+      // Update hidden input with new image path
+      const hiddenInput = this.element.querySelector('#token-image-path');
+      if (hiddenInput) {
+        hiddenInput.value = url;
+      }
+
+      // Update the preview image
+      await this._updateTokenImagePreview(url);
+      
+      ui.notifications.info(game.i18n.localize('DSRESKINNER.TokenImageUpdated'));
+    } catch (error) {
+      console.error('DS-Reskinner | Error updating token image:', error);
+      ui.notifications.error(game.i18n.localize('DSRESKINNER.TokenImageUpdateError'));
+    }
+  }
+
+  /**
+   * Validate that image URL is accessible
+   * @param {string} url - Image URL to validate
+   */
+  async _validateImageUrl(url) {
+    try {
+      const response = await fetch(url, { method: 'HEAD' });
+      if (!response.ok) {
+        throw new Error(`Image not accessible: ${response.status}`);
+      }
+    } catch (error) {
+      throw new Error(`Failed to validate image URL: ${error.message}`);
+    }
+  }
+
+  /**
+   * Update the token image preview in the form
+   * @param {string} imageUrl - New image URL
+   */
+  async _updateTokenImagePreview(imageUrl) {
+    const tokenImageContainer = this.element.querySelector('#token-image-container');
+    
+    if (!tokenImageContainer) return;
+
+    // Replace placeholder with image or update existing image
+    let imageElement = tokenImageContainer.querySelector('#token-image');
+    let placeholderElement = tokenImageContainer.querySelector('#token-placeholder');
+    
+    if (imageUrl) {
+      if (imageElement) {
+        // Update existing image
+        imageElement.src = imageUrl;
+        imageElement.style.display = 'block';
+      } else {
+        // Create new image element
+        const newImage = document.createElement('img');
+        newImage.id = 'token-image';
+        newImage.className = 'token-image';
+        newImage.src = imageUrl;
+        newImage.alt = game.i18n.localize('DSRESKINNER.TokenImageAlt');
+        newImage.setAttribute('aria-label', game.i18n.localize('DSRESKINNER.TokenImageAriaLabel'));
+        newImage.setAttribute('title', game.i18n.localize('DSRESKINNER.TokenImageTitle'));
+        
+        if (placeholderElement) {
+          tokenImageContainer.replaceChild(newImage, placeholderElement);
+        } else {
+          tokenImageContainer.appendChild(newImage);
+        }
+      }
+    } else if (placeholderElement) {
+      // Show placeholder if no image
+      if (imageElement) {
+        imageElement.style.display = 'none';
+      }
+    }
+  }
+
 
 }
 
@@ -818,8 +1171,6 @@ class ReskinApp extends HandlebarsApplication {
  * Version: INJECTED_AT_BUILD_TIME - This will be replaced by package.json version during build
  */
 
-// Centralized version reference - injected from package.json during build process
-const MODULE_VERSION = '0.2.22';
 
 /**
  * Check if an actor is a monster NPC that can be reskinned
@@ -841,23 +1192,15 @@ function isReskinnableMonster(actor) {
  * Add Reskin button to actor sheet headers
  */
 Hooks.on('getActorSheetHeaderButtons', (sheet, buttons) => {
-  console.log('getActorSheetHeaderButtons hook triggered');
-  console.log('Sheet actor:', sheet.actor);
-  console.log('Is reskinnable?', sheet.actor ? isReskinnableMonster(sheet.actor) : 'No actor found');
-  
   if (!isReskinnableMonster(sheet.actor)) return;
   
-  console.log('Adding Reskin button to actor sheet header');
   buttons.unshift({
     class: 'reskin-actor',
     icon: 'fas fa-palette',
     label: game.i18n.localize('DSRESKINNER.Reskin'),
     onclick: async () => {
-      console.log('Reskin button clicked, creating ReskinApp for:', sheet.actor.name);
       const reskinApp = new ReskinApp(sheet.actor);
-      console.log('ReskinApp instance created from sheet header, calling render...');
       await reskinApp.render(true);
-      console.log('ReskinApp render called and awaited from sheet header');
     }
   });
 });
@@ -866,74 +1209,42 @@ Hooks.on('getActorSheetHeaderButtons', (sheet, buttons) => {
  * Add Reskin option to actor context menu (Foundry VTT v13)
  */
 Hooks.on('getActorContextOptions', (html, menuItems) => {
-  console.log('getActorContextOptions called with html element and', menuItems.length, 'existing items');
-  
   // Add the context menu option for reskinning
   menuItems.push({
     name: game.i18n.localize('DSRESKINNER.ReskinMonster'),
     icon: '<i class="fas fa-palette"></i>',
     condition: (li) => {
-      console.log('Condition function called with li element:', li);
       // Get actor ID from the list item's dataset (Foundry V13 way, replacing jQuery .data() method)
       const actorId = li.dataset.documentId || li.dataset.entryId;
       if (!actorId) {
-        console.log('No actor ID found in element dataset');
         return false;
       }
       
       const actor = game.actors.get(actorId);
-      console.log('Found actor in condition:', actor ? {name: actor.name, type: actor.type} : 'none');
-      
-      const result = actor ? isReskinnableMonster(actor) : false;
-      console.log('Condition result:', result);
-      return result;
+      return actor ? isReskinnableMonster(actor) : false;
     },
     callback: async (li) => {
-      console.log('Callback function called with li element:', li);
       // Get actor ID from the list item's dataset (Foundry V13 way, replacing jQuery .data() method)
       const actorId = li.dataset.documentId || li.dataset.entryId;
       if (!actorId) {
-        console.warn('No actor ID found in element dataset');
         return;
       }
       
       const actor = game.actors.get(actorId);
       if (!actor) {
-        console.warn('Could not find actor with ID:', actorId);
         return;
       }
       
-      console.log('Opening reskin app for actor:', actor.name);
       const reskinApp = new ReskinApp(actor);
-      console.log('ReskinApp instance created, calling render...');
       await reskinApp.render(true);
-      console.log('ReskinApp render called and awaited');
     }
   });
 });
 
-/**
- * Main module class for initialization and hooks
- */
-class DrawSteelReskinner {
-  static init() {
-    console.log(`Draw Steel Reskinner | Initializing module version ${MODULE_VERSION} - Enhanced actor detection including DOM traversal when app.context is undefined`);
-  }
-
-  static ready() {
-    console.log(`Draw Steel Reskinner | Ready - all hooks registered version ${MODULE_VERSION}`);
-  }
-}
-
 // Register the module hooks
 Hooks.on('init', () => {
-  DrawSteelReskinner.init();
 });
 
 Hooks.on('ready', () => {
-  DrawSteelReskinner.ready();
 });
-
-// Log module initialization
-console.log(`Draw Steel Reskinner | Module loaded version ${MODULE_VERSION}`);
 //# sourceMappingURL=ds-reskinner.mjs.map

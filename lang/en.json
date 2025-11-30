@@ -43,6 +43,13 @@
       "burrow": "Burrow",
       "climb": "Climb",
       "teleport": "Teleport"
-    }
+    },
+    "TokenImageAlt": "Monster token image",
+    "TokenImageAriaLabel": "Token image, click to change",
+    "TokenImageTitle": "Click to select a new token image",
+    "TokenPlaceholderAriaLabel": "No token image, click to add one",
+    "TokenImagePickerError": "Failed to open image picker",
+    "TokenImageUpdateError": "Failed to update token image",
+    "TokenImageUpdated": "Token image updated successfully"
   }
 }
