@@ -1047,8 +1047,11 @@ class ReskinApp extends HandlebarsApplication {
    */
   async _handleTokenImageClick() {
     try {
+      // Use the correct FilePicker class for Foundry V13
+      const FilePickerClass = foundry.applications.apps.FilePicker.implementation;
+      
       // Create FilePicker instance
-      const fp = new FilePicker({
+      const fp = new FilePickerClass({
         type: 'image',
         callback: (url) => this._onTokenImageSelected(url),
         options: {
@@ -1056,15 +1059,13 @@ class ReskinApp extends HandlebarsApplication {
         }
       });
 
-      // Check upload permissions before allowing file picker
+      // Check upload permissions and browse to appropriate directory
       if (fp.canUpload) {
-        await fp.browse([
-          this.actor.prototypeToken?.texture?.src ? 
-          new URL(this.actor.prototypeToken.texture.src).pathname.split('/')[1] : 'data'
-        ]);
+        // Start with 'data' directory as default
+        await fp.browse('data');
       } else {
         // Browsing only if no upload permissions
-        await fp.browse(['data']);
+        await fp.browse('data');
       }
       
       // Render the FilePicker
