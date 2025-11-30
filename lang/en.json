@@ -10,6 +10,24 @@
     "Cancel": "Cancel",
     "NameEmptyError": "Monster name cannot be empty",
     "CreateSuccess": "Monster \"{name}\" has been created successfully",
-    "CreateError": "Failed to create reskinned monster. Please check the console for details."
+    "CreateError": "Failed to create reskinned monster. Please check the console for details.",
+    "DamageTypeReplacements": "Damage Type Replacements",
+    "DamageTypeAnalyzing": "Analyzing damage types...",
+    "SourceDamageType": "Source Damage Type",
+    "TargetDamageType": "Target Damage Type", 
+    "DamageTypePreview": "Will replace {count} instance(s) of {source} with {target}",
+    "NoDamageTypes": "No damage types detected in this monster",
+    "DamageTypeSameError": "Source and target damage types cannot be the same",
+    "DamageType": {
+      "acid": "Acid",
+      "cold": "Cold", 
+      "corruption": "Corruption",
+      "fire": "Fire",
+      "holy": "Holy",
+      "lightning": "Lightning",
+      "poison": "Poison",
+      "psychic": "Psychic",
+      "sonic": "Sonic"
+    }
   }
 }

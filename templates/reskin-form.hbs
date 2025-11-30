@@ -10,6 +10,56 @@
     <input type="text" id="actorName" name="actorName" value="{{actorName}}" required maxlength="100">
   </div>
 
+  <!-- Damage Type Replacement Section -->
+  <div class="form-group damage-type-section">
+    <div class="damage-type-header">
+      <button type="button" class="damage-type-toggle" id="damage-type-toggle">
+        <i class="fas fa-chevron-right"></i>
+        {{localize "DSRESKINNER.DamageTypeReplacements"}}
+      </button>
+    </div>
+    
+    <div class="damage-type-content" id="damage-type-content" style="display: none;">
+      <div class="damage-analysis" id="damage-analysis">
+        <p class="analyze-message">{{localize "DSRESKINNER.DamageTypeAnalyzing"}}</p>
+      </div>
+      
+      <div class="damage-type-controls" id="damage-type-controls" style="display: none;">
+        <div class="control-row">
+          <label for="source-damage-type">{{localize "DSRESKINNER.SourceDamageType"}}</label>
+          <select id="source-damage-type" name="sourceDamageType">
+            {{#each damageTypes}}
+            <option value="{{this.type}}" {{#if (eq this.count 0)}}disabled{{/if}}>
+              {{localize (concat "DSRESKINNER.DamageType." this.type)}} ({{this.count}})
+            </option>
+            {{/each}}
+          </select>
+        </div>
+        
+        <div class="control-row">
+          <label for="target-damage-type">{{localize "DSRESKINNER.TargetDamageType"}}</label>
+          <select id="target-damage-type" name="targetDamageType">
+            {{#each damageTypes}}
+            <option value="{{this.type}}">{{localize (concat "DSRESKINNER.DamageType." this.type)}}</option>
+            {{/each}}
+          </select>
+        </div>
+        
+        <div class="damage-preview" id="damage-preview">
+          <p class="preview-message">{{localize "DSRESKINNER.DamageTypePreview"}}</p>
+        </div>
+        
+        <div class="damage-validation" id="damage-validation">
+          <!-- Validation messages will be inserted here -->
+        </div>
+      </div>
+      
+      <div class="no-damage-types" id="no-damage-types" style="display: none;">
+        <p class="no-damage-message">{{localize "DSRESKINNER.NoDamageTypes"}}</p>
+      </div>
+    </div>
+  </div>
+
   <div class="form-group button-group">
     <button type="submit" data-action="submit">
       <i class="fas fa-save"></i>

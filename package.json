@@ -1,6 +1,6 @@
 {
   "name": "ds-reskinner",
-  "version": "0.1.49",
+  "version": "0.2.22",
   "description": "Draw Steel Reskinner - A Foundry VTT module for reskinning monsters",
   "scripts": {
     "build": "rollup -c",

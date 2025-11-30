@@ -37,6 +37,22 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 **Learned from Experience**: The error `"Metadata validation failed for module "ds-reskinner": The file "ds-reskinner.mjs" included by module ds-reskinner does not exist"` occurred because the build process wasn't run to generate the bundled JavaScript file that Foundry VTT expects.
 
-**Important Version Tracking Practice**: Each iteration of development should update version numbers in all relevant locations (`module.json`, `package.json`, and optionally source code comments/logs) to ensure clear identification of which version is running during testing and troubleshooting. This helps avoid confusion when diagnosing issues as you can clearly see which version of the codebase is running on the server.
+**Critical: Single Source of Truth for Versioning**
+
+**ONLY `package.json` version should be updated manually.** The build process automatically propagates this version to all other locations:
+
+- ✅ **Manual**: Update version in `package.json` only
+- ✅ **Automatic**: Build process updates `module.json` from `package.json`
+- ✅ **Automatic**: Build process injects version into JavaScript bundle
+- ❌ **Never**: Manually edit `module.json` version (will be overwritten)
+- ❌ **Never**: Add version comments to source files (redundant)
+
+**Version Update Workflow:**
+1. Increment version in `package.json` (semantic versioning: MAJOR.MINOR.PATCH)
+2. Run `npm run build` to propagate version changes
+3. Verify build output shows version update confirmation
+4. Test and deploy
+
+This consolidation eliminates version inconsistencies and ensures all components use the same version identifier.
 
 Note USER will upload the module to Foundry VTT, so we must ensure all files are properly built and referenced and wait for the user to confirm the server has been updated and restarted. 
