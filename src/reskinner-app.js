@@ -1,5 +1,5 @@
 /**
- * ReskinApp - Main application for reskinning monsters
+ * ReskinApp - Main application for reskinning monsters (Draw Steel V13 Compatible)
  */
 
 /**

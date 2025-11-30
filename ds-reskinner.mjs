@@ -1,5 +1,5 @@
 /**
- * ReskinApp - Main application for reskinning monsters
+ * ReskinApp - Main application for reskinning monsters (Draw Steel V13 Compatible)
  */
 
 /**
@@ -135,11 +135,11 @@ class ReskinApp extends HandlebarsApplication {
 /**
  * Draw Steel Reskinner Module
  * A Foundry VTT module for reskinning Draw Steel monsters
- * Version: 0.1.25 - Enhanced actor detection and V2 Application framework compatibility
+ * Version: 0.1.26 - Fixed Foundry V13 compatibility with Draw Steel system
  */
 
 // Centralized version reference to ensure consistency across the module
-const MODULE_VERSION = '0.1.25';
+const MODULE_VERSION = '0.1.26';
 
 /**
  * Check if an actor is a monster NPC that can be reskinned

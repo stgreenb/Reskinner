@@ -2,7 +2,7 @@
   "id": "ds-reskinner",
   "title": "Draw Steel Reskinner",
   "description": "A module for reskinning Draw Steel monsters with intuitive UI tools",
-  "version": "0.1.0",
+  "version": "0.1.26",
   "authors": [
     {
       "name": "stgreenb",
@@ -27,8 +27,8 @@
         "id": "draw-steel",
         "type": "system",
         "compatibility": {
-          "minimum": "1.0.0",
-          "verified": "1.0.0"
+          "minimum": "0.9.0",
+          "verified": "0.9.0"
         }
       }
     ],
