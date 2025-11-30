@@ -28,6 +28,21 @@ export class ReskinApp extends HandlebarsApplication {
    * @returns {Object} Application options
    * @override
    */
+  static get defaultOptions() {
+    return foundry.utils.mergeObject(super.defaultOptions, {
+      window: {
+        title: game.i18n.localize('DSRESKINNER.ReskinMonster'),
+        contentClasses: ['reskinner-app'],
+        minimizable: true,
+        resizable: true  // Changed to true to help with debug visibility
+      },
+      position: {
+        width: 400,
+        height: 300
+      }
+    });
+  }
+
   /**
    * Get the content template for the application
    * @returns {string} Template path
@@ -35,21 +50,6 @@ export class ReskinApp extends HandlebarsApplication {
    */
   get template() {
     return 'modules/ds-reskinner/templates/reskin-form.hbs';
-  }
-
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      window: {
-        title: game.i18n.localize('DSRESKINNER.ReskinMonster'),
-        contentClasses: ['reskinner-app'],
-        minimizable: true,
-        resizable: false
-      },
-      position: {
-        width: 400,
-        height: 300
-      }
-    });
   }
 
   /**

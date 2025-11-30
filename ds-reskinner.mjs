@@ -28,6 +28,21 @@ class ReskinApp extends HandlebarsApplication {
    * @returns {Object} Application options
    * @override
    */
+  static get defaultOptions() {
+    return foundry.utils.mergeObject(super.defaultOptions, {
+      window: {
+        title: game.i18n.localize('DSRESKINNER.ReskinMonster'),
+        contentClasses: ['reskinner-app'],
+        minimizable: true,
+        resizable: true  // Changed to true to help with debug visibility
+      },
+      position: {
+        width: 400,
+        height: 300
+      }
+    });
+  }
+
   /**
    * Get the content template for the application
    * @returns {string} Template path
@@ -35,21 +50,6 @@ class ReskinApp extends HandlebarsApplication {
    */
   get template() {
     return 'modules/ds-reskinner/templates/reskin-form.hbs';
-  }
-
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      window: {
-        title: game.i18n.localize('DSRESKINNER.ReskinMonster'),
-        contentClasses: ['reskinner-app'],
-        minimizable: true,
-        resizable: false
-      },
-      position: {
-        width: 400,
-        height: 300
-      }
-    });
   }
 
   /**
@@ -151,11 +151,11 @@ class ReskinApp extends HandlebarsApplication {
 /**
  * Draw Steel Reskinner Module
  * A Foundry VTT module for reskinning Draw Steel monsters
- * Version: 0.1.27 - Added comprehensive logging for debugging
+ * Version: 0.1.28 - Fixed window visibility issue by enabling resize
  */
 
 // Centralized version reference to ensure consistency across the module
-const MODULE_VERSION = '0.1.27';
+const MODULE_VERSION = '0.1.28';
 
 /**
  * Check if an actor is a monster NPC that can be reskinned
