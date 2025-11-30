@@ -29,6 +29,13 @@ export class ReskinApp extends HandlebarsApplication {
   ];
   
   /**
+   * Movement type constants for Draw Steel system
+   */
+  static MOVEMENT_TYPES = [
+    'walk', 'fly', 'swim', 'burrow', 'climb', 'teleport'
+  ];
+  
+  /**
    * Define action handlers for this application
    */
   static ACTIONS = {
@@ -107,11 +114,22 @@ export class ReskinApp extends HandlebarsApplication {
       count: 0 // Will be populated when section is expanded
     }));
     
+    // Get actor's actual movement data
+    const movementData = this._getMovementTypes();
+    
+    // Initialize movement types for initial render with proper selection state
+    const movementTypes = ReskinApp.MOVEMENT_TYPES.map(type => ({
+      type,
+      selected: movementData.types.includes(type)
+    }));
+    
     const context = {
       actor: this.actor,
       actorName: this.actor.name || this.actor.data?.name || 'Unknown',
       actorId: this.actor.id || this.actor._id,
-      damageTypes: damageTypes
+      damageTypes: damageTypes,
+      movementTypes: movementTypes,
+      hover: movementData.hover
     };
     
     console.log('ReskinApp | Preparing context for template:', 'modules/ds-reskinner/templates/reskin-form.hbs', 'with data:', context);
@@ -170,6 +188,15 @@ export class ReskinApp extends HandlebarsApplication {
       });
     }
 
+    // Handle movement type section toggle
+    const movementToggleBtn = this.element.querySelector('#movement-type-toggle');
+    if (movementToggleBtn) {
+      movementToggleBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        this._toggleMovementSection();
+      });
+    }
+
     // Handle damage type selection changes
     const sourceSelect = this.element.querySelector('#source-damage-type');
     const targetSelect = this.element.querySelector('#target-damage-type');
@@ -178,6 +205,18 @@ export class ReskinApp extends HandlebarsApplication {
     }
     if (targetSelect) {
       targetSelect.addEventListener('change', () => this._updateDamageValidation());
+    }
+
+    // Handle movement type checkbox changes
+    const movementCheckboxes = this.element.querySelectorAll('input[name="movementTypes"]');
+    movementCheckboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', () => this._updateMovementValidation());
+    });
+
+    // Handle hover checkbox change
+    const hoverCheckbox = this.element.querySelector('input[name="hover"]');
+    if (hoverCheckbox) {
+      hoverCheckbox.addEventListener('change', () => this._updateMovementValidation());
     }
     
     console.log('ReskinApp | Window content element:', this.element?.[0]);
@@ -222,6 +261,124 @@ export class ReskinApp extends HandlebarsApplication {
       if (icon) icon.classList.remove('fa-chevron-down');
       if (icon) icon.classList.add('fa-chevron-right');
     }
+  }
+
+  /**
+   * Toggle movement type section visibility and analyze movement types
+   */
+  _toggleMovementSection() {
+    const content = this.element.querySelector('#movement-type-content');
+    const toggleBtn = this.element.querySelector('#movement-type-toggle');
+    const icon = toggleBtn?.querySelector('i');
+    
+    if (!content) return;
+
+    const isHidden = content.style.display === 'none';
+    
+    if (isHidden) {
+      // Show section and analyze movement types
+      this._analyzeMovementTypes();
+      content.style.display = 'block';
+      if (icon) icon.classList.remove('fa-chevron-right');
+      if (icon) icon.classList.add('fa-chevron-down');
+    } else {
+      // Hide section
+      content.style.display = 'none';
+      if (icon) icon.classList.remove('fa-chevron-down');
+      if (icon) icon.classList.add('fa-chevron-right');
+    }
+  }
+
+  /**
+   * Analyze movement types and update UI accordingly
+   */
+  _analyzeMovementTypes() {
+    const movementData = this._getMovementTypes();
+    console.log('ReskinApp | _analyzeMovementTypes movementData:', movementData);
+    
+    const analysisDiv = this.element.querySelector('#movement-analysis');
+    const controlsDiv = this.element.querySelector('#movement-type-controls');
+    const noMovementDiv = this.element.querySelector('#no-movement-types');
+    
+    console.log('ReskinApp | Movement analysis elements found:', {
+      analysisDiv: !!analysisDiv,
+      controlsDiv: !!controlsDiv,
+      noMovementDiv: !!noMovementDiv
+    });
+
+    const typesArray = Array.isArray(movementData.types) ? movementData.types : [];
+    console.log('ReskinApp | Types array:', typesArray, 'Length:', typesArray.length);
+    
+    if (!analysisDiv || !controlsDiv || !noMovementDiv) {
+      console.warn('ReskinApp | Movement analysis elements not found, delaying...');
+      // Retry after a short delay
+      setTimeout(() => this._analyzeMovementTypes(), 100);
+      return;
+    }
+    
+    if (typesArray.length === 0) {
+      // No movement types found - hide controls and show message
+      console.log('ReskinApp | Showing no movement types message');
+      analysisDiv.style.display = 'none';
+      controlsDiv.style.display = 'none';
+      noMovementDiv.style.display = 'block';
+    } else {
+      // Show analysis and controls
+      console.log('ReskinApp | Showing movement types analysis');
+      const movementSummary = typesArray.map(type => 
+        game.i18n.localize(`DSRESKINNER.MovementType.${type}`)
+      ).join(', ');
+      
+      console.log('ReskinApp | Movement summary:', movementSummary);
+      analysisDiv.innerHTML = `<p class="movement-summary">${game.i18n.format('DSRESKINNER.MovementTypeSummary', { types: movementSummary })}</p>`;
+      analysisDiv.style.display = 'block';
+      noMovementDiv.style.display = 'none';
+      
+      // Update checkboxes
+      this._updateMovementOptions();
+      
+      // Show controls after a brief delay
+      setTimeout(() => {
+        controlsDiv.style.display = 'block';
+      }, 500);
+    }
+  }
+
+  /**
+   * Get current movement types from actor
+   */
+  _getMovementTypes() {
+    const movement = this.actor.system?.movement || {};
+    console.log('ReskinApp | Raw actor movement data:', {
+      'this.actor.system?.movement': movement,
+      'movement.types': movement.types,
+      'types type': typeof movement.types,
+      'Array.isArray(types)': Array.isArray(movement.types),
+      'types constructor': movement.types?.constructor?.name,
+      'types size': movement.types?.size,
+      'types array from set': Array.from(movement.types || []),
+      'actor id': this.actor.id,
+      'actor name': this.actor.name
+    });
+    
+    // Handle both Array and Set for movement types
+    let types = [];
+    if (Array.isArray(movement.types)) {
+      types = movement.types;
+    } else if (movement.types && typeof movement.types === 'object' && movement.types.constructor.name === 'Set') {
+      // Convert Set to Array
+      types = Array.from(movement.types);
+    }
+    
+    const result = {
+      types: types,
+      hover: !!movement.hover,
+      value: movement.value || 0,
+      disengage: movement.disengage || 1
+    };
+    
+    console.log('ReskinApp | Processed movement result:', result);
+    return result;
   }
 
   /**
@@ -314,6 +471,31 @@ export class ReskinApp extends HandlebarsApplication {
   }
 
   /**
+   * Update movement type checkboxes based on current actor data
+   */
+  _updateMovementOptions() {
+    console.log('ReskinApp | _updateMovementOptions: Updating movement checkboxes');
+    
+    const movementData = this._getMovementTypes();
+    
+    // Update movement type checkboxes
+    ReskinApp.MOVEMENT_TYPES.forEach(type => {
+      const checkbox = this.element.querySelector(`input[name="movementTypes"][value="${type}"]`);
+      if (checkbox) {
+        checkbox.checked = movementData.types.includes(type);
+      }
+    });
+    
+    // Update hover checkbox
+    const hoverCheckbox = this.element.querySelector('input[name="hover"]');
+    if (hoverCheckbox) {
+      hoverCheckbox.checked = movementData.hover;
+    }
+    
+    console.log('ReskinApp | Movement options updated:', movementData);
+  }
+
+  /**
    * Update damage type validation and preview
    */
   _updateDamageValidation() {
@@ -350,6 +532,29 @@ export class ReskinApp extends HandlebarsApplication {
         })}</p>`;
       }
     }
+  }
+
+  /**
+   * Update movement type validation
+   */
+  _updateMovementValidation() {
+    const validationDiv = this.element.querySelector('#movement-validation');
+    if (!validationDiv) return;
+
+    // Get checked movement types
+    const checkedBoxes = this.element.querySelectorAll('input[name="movementTypes"]:checked');
+    const selectedTypes = Array.from(checkedBoxes).map(cb => cb.value);
+
+    // Clear previous validation
+    validationDiv.innerHTML = '';
+
+    if (selectedTypes.length === 0) {
+      // No movement types selected - show error
+      validationDiv.innerHTML = `<p class="error">${game.i18n.localize('DSRESKINNER.MovementTypeRequired')}</p>`;
+      return false;
+    }
+
+    return true;
   }
 
   /**
@@ -420,6 +625,40 @@ export class ReskinApp extends HandlebarsApplication {
         // No damage replacement, just simple name change
         const originalName = this.actor.name || this.actor.data?.name || 'Unknown';
         newActorData = this._replaceNameInObject(newActorData, originalName, newName.trim());
+      }
+
+      // Apply movement type changes if requested
+      const movementSectionOpen = this.element.querySelector('#movement-type-content').style.display !== 'none';
+      if (movementSectionOpen) {
+        // Validate movement types selection
+        if (!this._updateMovementValidation()) {
+          ui.notifications.error(game.i18n.localize('DSRESKINNER.MovementTypeRequired'));
+          return;
+        }
+        
+        // Get movement type selections
+        const checkedBoxes = this.element.querySelectorAll('input[name="movementTypes"]:checked');
+        const selectedTypes = Array.from(checkedBoxes).map(cb => cb.value);
+        const hoverCheckbox = this.element.querySelector('input[name="hover"]');
+        const hoverEnabled = hoverCheckbox ? hoverCheckbox.checked : false;
+        
+        console.log('ReskinApp | Applying movement changes:', { selectedTypes, hoverEnabled });
+        
+        // Update movement types while preserving value and disengage
+        if (!newActorData.system.movement) {
+          newActorData.system.movement = {};
+        }
+        
+        newActorData.system.movement.types = selectedTypes;
+        newActorData.system.movement.hover = hoverEnabled;
+        
+        // Preserve existing value and disengage if they exist
+        if (newActorData.system.movement.value === undefined && this.actor.system?.movement?.value !== undefined) {
+          newActorData.system.movement.value = this.actor.system.movement.value;
+        }
+        if (newActorData.system.movement.disengage === undefined && this.actor.system?.movement?.disengage !== undefined) {
+          newActorData.system.movement.disengage = this.actor.system.movement.disengage;
+        }
       }
 
       // Finalize the new actor data

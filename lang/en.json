@@ -28,6 +28,20 @@
       "poison": "Poison",
       "psychic": "Psychic",
       "sonic": "Sonic"
+    },
+    "MovementTypes": "Movement Types",
+    "MovementTypeAnalyzing": "Analyzing movement types...",
+    "MovementTypeSummary": "This monster has: {types}",
+    "NoMovementTypes": "No movement types detected in this monster",
+    "MovementTypeRequired": "At least one movement type must be selected",
+    "Hover": "Hover",
+    "MovementType": {
+      "walk": "Walk",
+      "fly": "Fly",
+      "swim": "Swim",
+      "burrow": "Burrow",
+      "climb": "Climb",
+      "teleport": "Teleport"
     }
   }
 }
