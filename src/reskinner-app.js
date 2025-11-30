@@ -1059,13 +1059,12 @@ export class ReskinApp extends HandlebarsApplication {
         }
       });
 
-      // Check upload permissions and browse to appropriate directory
-      if (fp.canUpload) {
-        // Start with 'data' directory as default
-        await fp.browse('data');
-      } else {
-        // Browsing only if no upload permissions
-        await fp.browse('data');
+      // Browse to appropriate directory (use empty string for root/accessible directories)
+      try {
+        await fp.browse('');
+      } catch (browseError) {
+        // If browsing to root fails, try 'public' source
+        await fp.browse('public');
       }
       
       // Render the FilePicker
