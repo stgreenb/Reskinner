@@ -1,4 +1,4 @@
-<form class="reskinner-form">
+<section class="reskinner-form">
   <div class="form-group">
     <h2>{{localize "DSRESKINNER.ReskinMonsterTitle"}}</h2>
     <p>{{localize "DSRESKINNER.CreateNewMonster"}} <strong>{{actorName}}</strong></p>
@@ -11,13 +11,13 @@
   </div>
 
   <div class="form-group button-group">
-    <button type="submit" class="save-btn">
+    <button type="submit" data-action="submit">
       <i class="fas fa-save"></i>
       {{localize "DSRESKINNER.SaveChanges"}}
     </button>
-    <button type="button" class="cancel-btn" onclick="this.closest('.window-app').querySelector('.window-header .close').click()">
+    <button type="button" data-action="cancel">
       <i class="fas fa-times"></i>
       {{localize "DSRESKINNER.Cancel"}}
     </button>
   </div>
-</form>
+</section>

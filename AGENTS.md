@@ -36,3 +36,7 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 - **Path misalignment** → Update module.json to match generated file structure
 
 **Learned from Experience**: The error `"Metadata validation failed for module "ds-reskinner": The file "ds-reskinner.mjs" included by module ds-reskinner does not exist"` occurred because the build process wasn't run to generate the bundled JavaScript file that Foundry VTT expects.
+
+**Important Version Tracking Practice**: Each iteration of development should update version numbers in all relevant locations (`module.json`, `package.json`, and optionally source code comments/logs) to ensure clear identification of which version is running during testing and troubleshooting. This helps avoid confusion when diagnosing issues as you can clearly see which version of the codebase is running on the server.
+
+Note USER will upload the module to Foundry VTT, so we must ensure all files are properly built and referenced and wait for the user to confirm the server has been updated and restarted. 

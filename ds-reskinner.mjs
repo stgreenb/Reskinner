@@ -1,5 +1,6 @@
 /**
  * ReskinApp - Main application for reskinning monsters (Draw Steel V13 Compatible)
+ * Version: 0.1.49 - Updated button click event handling to collect input values correctly
  */
 
 /**
@@ -12,6 +13,22 @@ const HandlebarsApplication = foundry.applications.api.HandlebarsApplicationMixi
  */
 class ReskinApp extends HandlebarsApplication {
   /**
+   * Define the template parts for this application.
+   */
+  static PARTS = {
+    "content": {
+      template: "modules/ds-reskinner/templates/reskin-form.hbs"
+    }
+  };
+  
+  /**
+   * Define action handlers for this application
+   */
+  static ACTIONS = {
+    cancel: 'close'
+  };
+  
+  /**
    * Default configuration for the application
    * @returns {Object} Application options
    * @override
@@ -22,26 +39,112 @@ class ReskinApp extends HandlebarsApplication {
         title: game.i18n.localize('DSRESKINNER.ReskinMonster'),
         contentClasses: ['reskinner-app'],
         minimizable: true,
-        resizable: true  // Changed to true to help with debug visibility
-      },
-      form: {
-        submitOnChange: false,
-        closeOnSubmit: false
+        resizable: true,
+        positioned: true
       },
       position: {
-        width: 400,
-        height: 300
-      }
+        width: 600,
+        height: 'auto'
+      },
+      classes: ['reskinner-app']
     });
   }
 
+
+
   /**
-   * Get the content template for the application
-   * @returns {string} Template path
+   * Render the application
+   * @param {boolean} force - Force re-rendering
+   * @param {object} options - Rendering options
+   * @returns {Promise<this>} This application instance
    * @override
    */
-  get template() {
-    return 'modules/ds-reskinner/templates/reskin-form.hbs';
+  async render(force = false, options = {}) {
+    console.log('ReskinApp | render called with force:', force, 'options:', options);
+    
+    // Log before calling parent render to track execution flow
+    console.log('ReskinApp | About to call super.render()');
+    
+    // Call the parent render method to ensure proper initialization
+    const result = await super.render(force, options);
+    
+    // Log after to verify the render completed
+    console.log('ReskinApp | super.render() completed, result:', result);
+    
+    return result;
+  }
+
+  /**
+   * Prepare context for the application template
+   * @param {object} options - Options passed to the template rendering function
+   * @returns {object} The template context data
+   * @override
+   */
+  async _prepareContext(options = {}) {
+    console.log('ReskinApp | _prepareContext called with actor:', this.actor?.name || 'undefined');
+    console.log('ReskinApp | Actor data:', {
+      name: this.actor?.name,
+      id: this.actor?.id,
+      type: this.actor?.type,
+      system: typeof this.actor?.system !== 'undefined' ? 'available' : 'undefined'
+    });
+    
+    if (!this.actor) {
+      throw new Error('ReskinApp | Actor is required but not provided');
+    }
+    
+    const context = {
+      actor: this.actor,
+      actorName: this.actor.name || this.actor.data?.name || 'Unknown',
+      actorId: this.actor.id || this.actor._id
+    };
+    
+    console.log('ReskinApp | Preparing context for template:', 'modules/ds-reskinner/templates/reskin-form.hbs', 'with data:', context);
+    
+    return context;
+  }
+
+  /**
+   * Prepare context for each template part
+   * @param {string} partId - The partId name
+   * @param {object} context - The context data
+   * @returns {object} The part-specific context
+   * @override
+   */
+  async _preparePartContext(partId, context) {
+    return context;
+  }
+
+  /**
+   * Called after the application renders and is added to the DOM
+   * @param {HTMLElement} element - The HTML element that was rendered
+   * @override
+   */
+  _onRender(context, options) {
+    super._onRender(context, options);
+    
+    console.log('ReskinApp | _onRender called with element:', this.element);
+    
+    // Find the submit button and attach a click handler instead of form submit
+    const submitBtn = this.element.querySelector('button[data-action="submit"]');
+    if (submitBtn) {
+      console.log('ReskinApp | Found submit button! Attaching click handler.');
+      submitBtn.addEventListener('click', (event) => this._handleFormSubmit(event));
+    } else {
+      console.log('ReskinApp | ❌ Submit button not found');
+    }
+    
+    // Also handle cancel
+    const cancelBtn = this.element.querySelector('button[data-action="cancel"]');
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        this.close();
+      });
+    }
+    
+    console.log('ReskinApp | Window content element:', this.element?.[0]);
+    console.log('ReskinApp | Application is in DOM:', this.element?.[0] && this.element?.[0].isConnected ? 'yes' : 'no');
   }
 
   /**
@@ -57,93 +160,33 @@ class ReskinApp extends HandlebarsApplication {
   }
 
   /**
-   * Prepare context for the application template
-   * @param {object} options - Options passed to the template rendering function
-   * @returns {object} The template context data
-   * @override
+   * Handle form submission manually when the submit button is clicked
+   * @param {Event} event - The button click event
    */
-  async _prepareContext(options) {
-    console.log('ReskinApp | _prepareContext called with actor:', this.actor?.name || 'undefined');
-    console.log('ReskinApp | Actor data:', {
-      name: this.actor?.name,
-      id: this.actor?.id,
-      type: this.actor?.type,
-      system: typeof this.actor?.system !== 'undefined' ? 'available' : 'undefined'
-    });
-    
-    return {
-      actor: this.actor,
-      actorName: this.actor.name,
-      actorId: this.actor.id
-    };
-  }
-
-  /**
-   * Activate event listeners
-   * @param {HTMLElement} html - The rendered HTML
-   * @override
-   */
-  _activateListeners(html) {
-    super._activateListeners(html);
-    
-    console.log('ReskinApp | _activateListeners called with html:', html);
-
-    // Handle form submission
-    // In V2 HandlebarsApplication, we need to bind the form submit handler manually
-    const form = html.querySelector('form.reskinner-form');
-    console.log('ReskinApp | Found form element:', form ? 'yes' : 'no');
-    if (form) {
-      form.addEventListener('submit', this._onFormSubmit.bind(this));
-      console.log('ReskinApp | Event listener added to form submit');
-    }
-    
-    // Add support for the cancel button click
-    const cancelButtons = html.querySelectorAll('.cancel-btn');
-    console.log('ReskinApp | Found cancel buttons:', cancelButtons.length);
-    cancelButtons.forEach((button, index) => {
-      console.log('ReskinApp | Adding click listener to cancel button', index);
-      button.addEventListener('click', () => {
-        console.log('ReskinApp | Cancel button clicked');
-        this.close();
-      });
-    });
-  }
-
-  /**
-   * Handle form submission
-   * @param {Event} event - The submit event
-   * @private
-   */
-  async _onFormSubmit(event) {
+  async _handleFormSubmit(event) {
     event.preventDefault();
     
-    // Get the form data directly from the event target to access the submitted data
-    const form = event.target;
-    const formData = new FormData(form);
-    const newName = formData.get('actorName');
+    // Manually collect form data since section element won't create FormDataExtended correctly
+    const inputElement = this.element.querySelector('input[name="actorName"]');
+    const newName = inputElement ? inputElement.value : '';
+    
+    console.log('ReskinApp | Form submitted with name:', newName);
     
     if (!newName || newName.trim() === '') {
       ui.notifications.error(game.i18n.localize('DSRESKINNER.NameEmptyError'));
       return;
     }
-
+    
     try {
-      // Create a new actor based on the current actor's data
       const sourceData = this.actor.toObject();
-      
-      // Update the name and generate a new ID for the new actor
       const newActorData = foundry.utils.mergeObject(sourceData, {
         name: newName.trim(),
-        _id: null, // This ensures a new ID will be generated
-        folder: null, // Don't assign to any specific folder by default
-        ownership: { // Ensure proper ownership defaults
-          default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
-        }
+        _id: null,
+        folder: null,
+        ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE }
       });
-
-      // Create the cloned actor in the actors directory
-      await Actor.create(newActorData);
       
+      await Actor.create(newActorData);
       ui.notifications.info(game.i18n.format('DSRESKINNER.CreateSuccess', { name: newName }));
       this.close();
     } catch (error) {
@@ -151,16 +194,36 @@ class ReskinApp extends HandlebarsApplication {
       ui.notifications.error(game.i18n.localize('DSRESKINNER.CreateError'));
     }
   }
+
+
+
+
+
+
+
+
+
+  /**
+   * Cancel form action  
+   * @param {Event} event - The event that triggered this action
+   * @param {HTMLElement} element - The element the action occurred on 
+   */
+  async _onFormCancel(event) {  
+    event.preventDefault();  
+    this.close();
+  }
+
+
 }
 
 /**
  * Draw Steel Reskinner Module
  * A Foundry VTT module for reskinning Draw Steel monsters
- * Version: 0.1.32 - Updated configuration for HandlebarsApplication display
+ * Version: 0.1.49 - Updated button click event handling to collect input values correctly
  */
 
 // Centralized version reference to ensure consistency across the module
-const MODULE_VERSION = '0.1.32';
+const MODULE_VERSION = '0.1.49';
 
 /**
  * Check if an actor is a monster NPC that can be reskinned
