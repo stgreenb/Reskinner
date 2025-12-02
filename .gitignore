@@ -26,3 +26,19 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Unnecessary files
+minimal-ui-fix.css
+quick-fix-guide.md
+ui-consistency-dark-theme.md
+unified-dark-theme.css
+*.csv
+
+# Development artifacts to ignore
+src/calculators/
+src/styles-old.css
+
+# OpenSpec archives and temporary changes
+openspec/changes/archive/
+
+# Note: src/constants/ contains essential code files (helpers.js, modifiers.js) and should be tracked
