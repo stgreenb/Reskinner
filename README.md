@@ -1,80 +1,86 @@
 # Draw Steel Reskinner
 
-A Foundry VTT module for the Draw Steel system that provides an intuitive interface for reskinning monsters by creating variations of existing monsters.
+A Foundry VTT module for the Draw Steel system that provides an intuitive interface for quickly reskinning monsters to suit your campaign needs.
 
 ## Features
 
-- **Clone and Modify**: Create new monster actors based on existing ones while preserving the original
-- **Easy Access**: Reskin from either the Actor Sheet header or Actors sidebar context menu
-- **Simple Interface**: Clean, focused UI for naming your new monster
-- **Safe Operations**: Original monsters remain completely unchanged
+- **Quick Access**: Right-click on any monster in the Actors sidebar or compendium to start reskinning
+- **Name Changes**: Instantly rename monsters for your campaign
+- **Image Swapping**: Change both portrait art and token images simultaneously
+- **Damage Type Conversion**: Swap one damage type for another across all abilities
+- **Movement Types**: Add or remove movement types for terrain-specific encounters
+- **Level & Role Adjustments**: Modify monster level and role with smart restrictions
+- **Safe Operations**: Creates new actor copies - original monsters remain unchanged
 
 ## Installation
 
-### Local Development Installation
+### From GitHub Release (Recommended)
 
-1. Clone or download this repository to your local machine
-2. Copy the entire `ds-reskinner` folder to your Foundry VTT `Data/modules` directory
+1. Download the latest release from the [GitHub releases page](https://github.com/stgreenb/ds-reskinner/releases)
+2. Extract the `ds-reskinner` folder to your Foundry VTT `Data/modules` directory
+3. Start Foundry VTT and enable the "Draw Steel Reskinner" module in your world settings
+
+### Manual Installation
+
+1. Clone this repository to your local machine
+2. Copy the entire folder to your Foundry VTT `Data/modules` directory:
    - **Windows**: `C:\Users\{username}\AppData\Local\Foundry VTT\Data\modules\`
    - **Mac**: `~/Library/Application Support/Foundry VTT/Data/modules/`
    - **Linux**: `~/.local/share/Foundry VTT/Data/modules/`
-3. Install dependencies and build the module:
+3. Install dependencies and build:
    ```bash
    cd /path/to/ds-reskinner
    npm install
    npm run build
    ```
-   _This creates `ds-reskinner.mjs` and `css/module.css` needed by Foundry VTT_
-4. Start Foundry VTT and enable the "Draw Steel Reskinner" module in your world settings
-
-**Note**: The pre-built `ds-reskinner.mjs` and `css/module.css` files are included in this repository, so if you prefer, you can skip the build step for basic testing.
-
-### Release Installation (Future)
-
-Once releases are available on GitHub:
-
-1. Download the latest release from the [GitHub releases page](https://github.com/stgreenb/ds-reskinner/releases)
-2. Extract the downloaded zip file to your Foundry VTT `Data/modules` directory
-3. Start Foundry VTT and enable the "Draw Steel Reskinner" module in your world settings
+4. Start Foundry VTT and enable the module in world settings
 
 ## Usage
 
-### From an Actor Sheet
-
-1. Open any monster NPC actor sheet in the Draw Steel system
-2. Click the "Reskin" button in the sheet header (palette icon)
-3. Enter a new name for your reskinned monster
-4. Click "Save Changes" to create the new monster
-
 ### From the Actors Sidebar
 
-1. Right-click on any monster NPC in the Actors sidebar
-2. Select "Reskin Monster" from the context menu
-3. Enter a new name for your reskinned monster
-4. Click "Save Changes" to create the new monster
+1. **Right-click** on any monster NPC in the Actors sidebar
+2. Select **"Reskin Monster"** from the context menu
+3. Make your desired changes in the reskin interface
+4. Click **"Save Changes"** to create your new monster
 
-## What Happens When You Reskin
+### From a Compendium
 
-- A new monster actor is created with your chosen name
-- The new monster inherits all the stats, abilities, and properties of the original
-- The original monster remains completely unchanged
-- The new monster appears in your Actors directory, ready for use
+1. **Right-click** on any monster in a compendium
+2. Select **"Reskin Monster"** from the context menu
+3. Configure your reskinned monster
+4. Save to create a new actor in your Actors directory
+
+## Reskinning Options
+
+### Basic Changes
+- **Name**: Change the monster's display name
+- **Images**: Update character art and token simultaneously
+
+### Combat Adjustments
+- **Damage Types**: Replace one damage type with another across all abilities
+- **Movement**: Add or remove movement types (burrow, climb, fly, swim)
+
+### Power Scaling
+- **Level**: Adjust the monster's level for your party
+- **Role**: Change between combat roles (with smart restrictions to maintain balance)
+
+**Note**: Role changes have intelligent restrictions - Leaders and Solos can swap between each other, while other roles cannot become Leaders/Solos without additional villain actions.
 
 ## Requirements
 
-- **Foundry VTT**: Version 11.0 or higher (verified on v12)
+- **Foundry VTT**: Version 11.0 or higher (tested on v12 and v13)
 - **System**: Draw Steel system
-- **Permissions**: GM or equivalent permissions to create actors
+- **Permissions**: Game Master or equivalent permissions to create actors
 
 ## Development
 
-This module is built using modern JavaScript (ES Modules) and includes:
+This module is built with:
+- **JavaScript ES Modules**: Modern JavaScript patterns
+- **Rollup.js**: Build system for bundling and asset management
+- **Handlebars**: Template system for the user interface
 
-- **Rollup.js**: For bundling JavaScript and copying assets
-- **ESLint**: For code quality and consistency
-- **Handlebars**: For UI templates
-
-### Building
+### Building the Module
 
 ```bash
 # Install dependencies
@@ -86,25 +92,39 @@ npm run build
 # Watch for changes during development
 npm run watch
 
-# Lint code
-npm run lint
+# Validate module structure
+npm run validate
+
+# Create a release
+npm run release
 ```
 
 ## License
 
-This module is licensed under the MIT License.
+This module is licensed under the [MIT License](LICENSE).
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/stgreenb/ds-reskinner/issues)
+- **Issues & Bug Reports**: [GitHub Issues](https://github.com/stgreenb/ds-reskinner/issues)
 - **Author**: stgreenb
-- **System**: Draw Steel
+- **System Compatibility**: Draw Steel RPG system
 
 ## Changelog
+
+### v0.4.3
+- Enhanced build process with validation
+- Added release automation
+- Cleaned repository for public release
+- Improved package distribution structure
+
+### v0.4.0
+- Added compendium support for right-click reskinning
+- Implemented damage type swapping
+- Added movement type management
+- Level and role adjustment features
 
 ### v0.1.0
 - Initial release
 - Basic monster reskinning via clone-and-modify
 - Actor sheet header button integration
-- Actors sidebar context menu integration
-- Simple name-based reskinning interface
+- Simple name and image swapping interface

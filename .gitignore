@@ -21,17 +21,34 @@ Thumbs.db
 *.swp
 *.swo
 
-# Logs
+# AI Assistant Directories (exclude from public repository)
+.factory/
+.gemini/
+.kilocode/
+.windsurf/
+.openspec/
+
+# Development Documentation (development-only)
+AGENTS.md
+quick-fix-guide.md
+ui-consistency-dark-theme.md
+AdjustingMonsters.md
+
+# Logs and Temporary Files
 *.log
+192.168.*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Unnecessary files
+# Development CSS Files (not for distribution)
 minimal-ui-fix.css
-quick-fix-guide.md
-ui-consistency-dark-theme.md
 unified-dark-theme.css
+
+# Temporary Monster Files
+fvtt-Actor-*.json
+
+# Unnecessary files
 *.csv
 
 # Development artifacts to ignore
