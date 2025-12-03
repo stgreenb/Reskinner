@@ -1,12 +1,14 @@
 {
   "name": "ds-reskinner",
-  "version": "0.3.3",
+  "version": "0.4.3",
   "description": "Draw Steel Reskinner - A Foundry VTT module for reskinning monsters",
   "scripts": {
-    "build": "rollup -c",
+    "build": "echo \"✅ Remember to increment version in package.json before building for release!\" && rollup -c",
     "watch": "rollup -c -w",
     "lint": "eslint src/**/*.mjs",
-    "lint:fix": "eslint src/**/*.mjs --fix"
+    "lint:fix": "eslint src/**/*.mjs --fix",
+    "validate": "node scripts/validate-module.js",
+    "release": "npm run validate && npm run build && node scripts/create-release.js"
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^15.2.3",
