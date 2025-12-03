@@ -1202,6 +1202,227 @@ class ReskinApp extends HandlebarsApplication {
 
 
   /**
+   * Apply reskin transformations to actor data
+   * @param {Object} newActorData - Actor data to transform
+   * @param {string} newName - New name for the actor
+   * @returns {Promise<Object>} Transformed actor data
+   */
+  async _applyReskinTransformations(newActorData, newName) {
+    // Get damage type selections
+    const sourceSelect = this.element.querySelector('#source-damage-type');
+    const targetSelect = this.element.querySelector('#target-damage-type');
+    const damageSectionOpen = this.element.querySelector('#damage-type-content').style.display !== 'none';
+    
+    let sourceDamageType = null;
+    let targetDamageType = null;
+    
+    if (damageSectionOpen && sourceSelect && targetSelect) {
+      sourceDamageType = sourceSelect.value;
+      targetDamageType = targetSelect.value;
+    }
+    
+    // Replace damage types using placeholder system if requested and different
+    if (sourceDamageType && targetDamageType && sourceDamageType !== targetDamageType) {
+      const originalName = this.actor.name || this.actor.data?.name || 'Unknown';
+      const nameProtectionPlaceholder = `__PROTECTED_NAME_${Date.now()}__`;
+      const originalNamePlaceholder = `__PROTECTED_ORIGINAL_NAME_${Date.now()}__`;
+      
+      // Step 1: Protect BOTH names from damage type replacements
+      newActorData = this._replaceNameInObject(newActorData, newName.trim(), nameProtectionPlaceholder);
+      newActorData = this._replaceNameInObject(newActorData, originalName, originalNamePlaceholder);
+      
+      // Step 2: Swap immunities AND weaknesses
+      newActorData = this._swapDamageTypeImmunities(newActorData, sourceDamageType, targetDamageType);
+      
+      // Step 3: Replace damage types in arrays/effects ONLY
+      this._placeholders.clear();
+      newActorData = this._replaceDamageTypeWithPlaceholders(newActorData, sourceDamageType, targetDamageType, false);
+      newActorData = this._replaceDamageTypeWithPlaceholders(newActorData, sourceDamageType, targetDamageType, true);
+      
+      // Step 4: Restore both protected names to the NEW name
+      newActorData = this._replaceNameInObject(newActorData, nameProtectionPlaceholder, newName.trim());
+      newActorData = this._replaceNameInObject(newActorData, originalNamePlaceholder, newName.trim());
+      
+    } else {
+      // No damage replacement, just simple name change
+      const originalName = this.actor.name || this.actor.data?.name || 'Unknown';
+      newActorData = this._replaceNameInObject(newActorData, originalName, newName.trim());
+    }
+
+    // Apply movement type changes if requested
+    const movementSectionOpen = this.element.querySelector('#movement-type-content').style.display !== 'none';
+    if (movementSectionOpen) {
+      // Validate movement types selection
+      if (!this._updateMovementValidation()) {
+        throw new Error(game.i18n.localize('DSRESKINNER.MovementTypeRequired'));
+      }
+      
+      // Get movement type selections
+      const checkedBoxes = this.element.querySelectorAll('input[name="movementTypes"]:checked');
+      const selectedTypes = Array.from(checkedBoxes).map(cb => cb.value);
+      const hoverCheckbox = this.element.querySelector('input[name="hover"]');
+      const hoverEnabled = hoverCheckbox ? hoverCheckbox.checked : false;
+      
+      // Update movement types while preserving value and disengage
+      if (!newActorData.system.movement) {
+        newActorData.system.movement = {};
+      }
+      
+      newActorData.system.movement.types = selectedTypes;
+      newActorData.system.movement.hover = hoverEnabled;
+      
+      // Preserve existing value and disengage if they exist
+      if (newActorData.system.movement.value === undefined && this.actor.system?.movement?.value !== undefined) {
+        newActorData.system.movement.value = this.actor.system.movement.value;
+      }
+      if (newActorData.system.movement.disengage === undefined && this.actor.system?.movement?.disengage !== undefined) {
+        newActorData.system.movement.disengage = this.actor.system.movement.disengage;
+      }
+    }
+
+    // Apply level adjustment changes if level adjustment section is open
+    const levelSectionOpen = this.element.querySelector('#level-adjustment-content').style.display !== 'none';
+    if (levelSectionOpen) {
+      const levelInput = this.element.querySelector('#target-level');
+      const roleSelect = this.element.querySelector('#monster-role');
+      const organizationSelect = this.element.querySelector('#monster-organization');
+      
+      if (levelInput && organizationSelect) {
+        const targetLevel = parseInt(levelInput.value);
+        const role = roleSelect ? roleSelect.value : this.actor.system.monster?.role || this.actor.system.details?.role || null;
+        const organization = organizationSelect.value;
+
+        // Validate the inputs
+        if (!targetLevel || targetLevel < 1 || targetLevel > 20) {
+          throw new Error(game.i18n.localize('DSRESKINNER.LevelAdjustment.LevelValidationError'));
+        }
+
+        // Special handling for Leader and Solo organizations
+        let effectiveRole = role;
+        let isLeaderOrSolo = false;
+        
+        if (!role && (organization === 'leader' || organization === 'solo')) {
+          // Leader/Solo monsters don't use traditional roles
+          effectiveRole = null;
+          isLeaderOrSolo = true;
+        } else {
+          // Use original monster role if role selection is disabled (null)
+          effectiveRole = role || this.actor.system.monster?.role || this.actor.system.details?.role || 'brute';
+          isLeaderOrSolo = this.actor.system.monster?.organization === 'leader' || this.actor.system.monster?.organization === 'solo';
+        }
+        
+        // Calculate new values using the calculator functions
+        const newEV = calculateEncounterValue(targetLevel, organization);
+        const newStamina = calculateStamina(targetLevel, effectiveRole, organization, false, isLeaderOrSolo);
+        const characteristics = calculateCharacteristics(targetLevel, isLeaderOrSolo);
+        
+        // Update system level with flexible access
+        if (!newActorData.system) {
+          newActorData.system = {};
+        }
+        if (this.actor.system.monster) {
+          // Draw Steel structure - update monster level, role, and organization
+          if (!newActorData.system.monster) {
+            newActorData.system.monster = {};
+          }
+          newActorData.system.monster.level = targetLevel;
+          newActorData.system.monster.role = effectiveRole;  // Update role
+          newActorData.system.monster.organization = organization;  // Update organization
+          
+          // Update organization label for display
+          const organizationLabels = {
+            'minion': 'Minion',
+            'horde': 'Horde', 
+            'platoon': 'Platoon',
+            'elite': 'Elite',
+            'leader': 'Leader',
+            'solo': 'Solo',
+            'minion-stamina': 'Minion',
+            'solo-stamina': 'Solo'
+          };
+          newActorData.system.monster.organizationLabel = organizationLabels[organization] || organization;
+
+        } else {
+          // Standard structure - update details level
+          if (!newActorData.system.details) {
+            newActorData.system.details = {};
+          }
+          newActorData.system.details.level = targetLevel;
+        }
+
+        // Update EV and Stamina with flexible access for Draw Steel structure
+        if (!newActorData.system.attributes) {
+          newActorData.system.attributes = {};
+        }
+        
+        // Update Draw Steel specific structure first
+        if (this.actor.system.monster) {
+          // Update monster EV
+          if (!newActorData.system.monster) {
+            newActorData.system.monster = {};
+          }
+          newActorData.system.monster.ev = newEV;
+          
+          // Update stamina in Draw Steel structure
+          if (!newActorData.system.stamina) {
+            newActorData.system.stamina = {};
+          }
+          newActorData.system.stamina.value = newStamina;
+          newActorData.system.stamina.max = newStamina;
+        }
+        
+        // Also update generic attributes structure for compatibility
+        newActorData.system.attributes.ev = newEV;
+        newActorData.system.attributes.stamina = newStamina;
+        
+        // Update characteristics (power roll bonuses) with flexible access
+        if (!newActorData.system.characteristics) {
+          newActorData.system.characteristics = {};
+        }
+        
+        // Try multiple ways to update power roll bonus (Draw Steel may vary in structure)
+        if (newActorData.system.characteristics.powerRoll !== undefined) {
+          if (newActorData.system.characteristics.powerRoll.bonus !== undefined) {
+            newActorData.system.characteristics.powerRoll.bonus = characteristics.powerRollBonus;
+          } else {
+            newActorData.system.characteristics.powerRoll = { bonus: characteristics.powerRollBonus };
+          }
+        } else {
+          // Try direct powerRoll property
+          newActorData.system.characteristics.powerRoll = { bonus: characteristics.powerRollBonus };
+        }
+      }
+    }
+
+    // Handle token image update if requested
+    const tokenImagePath = this.element.querySelector('#token-image-path');
+    if (tokenImagePath && tokenImagePath.value) {
+      // Update both prototypeToken.texture.src and token.texture.src as specified in design
+      if (!newActorData.prototypeToken) {
+        newActorData.prototypeToken = {};
+      }
+      if (!newActorData.prototypeToken.texture) {
+        newActorData.prototypeToken.texture = {};
+      }
+      newActorData.prototypeToken.texture.src = tokenImagePath.value;
+
+      // Also update token.texture.src for consistency
+      if (!newActorData.token) {
+        newActorData.token = {};
+      }
+      if (!newActorData.token.texture) {
+        newActorData.token.texture = {};
+      }
+      newActorData.token.texture.src = tokenImagePath.value;
+      
+      // Also update character art (img property) with the same image
+      newActorData.img = tokenImagePath.value;
+    }
+
+    return newActorData;
+  }
+
+  /**
    * Handle form submission manually when the submit button is clicked
    * @param {Event} event - The button click event
    */
@@ -1978,79 +2199,130 @@ class ReskinApp extends HandlebarsApplication {
  */
 
 
-/**
- * Check if an actor is a monster NPC that can be reskinned
- * @param {Actor} actor - The actor to check
- * @returns {boolean} True if the actor is a reskinnable monster
- */
+// Define the validation function and make it globally accessible
 function isReskinnableMonster(actor) {
-  // Check if it's an NPC (monster) in the Draw Steel system
-  if (!actor || actor.type !== 'npc') return false;
-  
-  // Check if it's in the Draw Steel system
-  const isDrawSteel = game.system.id === 'draw-steel';
-  if (!isDrawSteel) return false;
-  
-  return true;
+  return actor && actor.type === "npc";
 }
 
-/**
- * Add Reskin button to actor sheet headers
- */
-Hooks.on('getActorSheetHeaderButtons', (sheet, buttons) => {
-  if (!isReskinnableMonster(sheet.actor)) return;
-  
+// Make function globally available for testing and module access
+window.isReskinnableMonster = isReskinnableMonster;
+
+// Register hooks once when Foundry starts
+Hooks.once("init", () => {
+  console.log("DS-Reskinner | Initializing hooks");
+});
+
+// Simple hook for actor sheets - works with some systems
+Hooks.on("getActorSheetHeaderButtons", (sheet, buttons) => {
+  const actor = sheet.actor;
+  if (!actor || !isReskinnableMonster(actor)) return;
+
   buttons.unshift({
-    class: 'reskin-actor',
-    icon: 'fas fa-palette',
-    label: game.i18n.localize('DSRESKINNER.Reskin'),
+    class: "reskin-actor",
+    icon: "fas fa-palette", 
+    label: game.i18n.localize("DSRESKINNER.Reskin"),
     onclick: async () => {
-      const reskinApp = new ReskinApp(sheet.actor);
-      await reskinApp.render(true);
-    }
-  });
-});
-
-/**
- * Add Reskin option to actor context menu (Foundry VTT v13)
- */
-Hooks.on('getActorContextOptions', (html, menuItems) => {
-  // Add the context menu option for reskinning
-  menuItems.push({
-    name: game.i18n.localize('DSRESKINNER.ReskinMonster'),
-    icon: '<i class="fas fa-palette"></i>',
-    condition: (li) => {
-      // Get actor ID from the list item's dataset (Foundry V13 way, replacing jQuery .data() method)
-      const actorId = li.dataset.documentId || li.dataset.entryId;
-      if (!actorId) {
-        return false;
-      }
-      
-      const actor = game.actors.get(actorId);
-      return actor ? isReskinnableMonster(actor) : false;
-    },
-    callback: async (li) => {
-      // Get actor ID from the list item's dataset (Foundry V13 way, replacing jQuery .data() method)
-      const actorId = li.dataset.documentId || li.dataset.entryId;
-      if (!actorId) {
-        return;
-      }
-      
-      const actor = game.actors.get(actorId);
-      if (!actor) {
-        return;
-      }
-      
       const reskinApp = new ReskinApp(actor);
-      await reskinApp.render(true);
+      await reskinApp(true);
     }
   });
 });
 
-// Register the module hooks
-Hooks.on('init', () => {
-});
-
-Hooks.on('ready', () => {
+// Actor directory and compendium context menu - this works reliably
+Hooks.on("getActorContextOptions", (app, menuItems) => {
+  // Check if this is a compendium directory
+  const isCompendium = app.constructor.name.includes("Compendium");
+  
+  // Add context menu option for actor directory
+  if (!isCompendium) {
+    menuItems.push({
+      name: game.i18n.localize("DSRESKINNER.ReskinMonster"),
+      icon: '<i class="fas fa-palette"></i>',
+      condition: li => {
+        const actorId = li.dataset.documentId || li.dataset.entryId;
+        if (!actorId) return false;
+        const actor = game.actors.get(actorId);
+        return isReskinnableMonster(actor);
+      },
+      callback: async li => {
+        const actorId = li.dataset.documentId || li.dataset.entryId;
+        const actor = game.actors.get(actorId);
+        if (!actor) return;
+        const app = new ReskinApp(actor);
+        await app.render(true);
+      }
+    });
+  }
+  
+  // Add context menu option for compendium
+  if (isCompendium && game.system.id === "draw-steel") {
+    
+    menuItems.push({
+      name: game.i18n.localize("DSRESKINNER.ReskinAndImport"),
+      icon: '<i class="fas fa-palette"></i>',
+      condition: (li) => {
+        // li is the entry element clicked
+        const documentId = li.dataset.documentId || li.dataset.entryId;
+        return !!documentId;
+      },
+      callback: async (li) => {
+        const documentId = li.dataset.documentId || li.dataset.entryId;
+        if (!documentId) return;
+        
+        try {
+          // Get the compendium pack name from app ID - most reliable for V13
+          let packName = null;
+          
+          // Extract from app ID (format: compendium-{packname})
+          if (app.options?.id) {
+            const appId = app.options.id;
+            const match = appId.match(/^compendium-(.+)$/);
+            if (match) {
+              packName = match[1];
+            }
+          }
+          
+          // Fallback to DOM data attributes
+          if (!packName) {
+            const directory = li.closest('.directory');
+            packName = directory?.dataset?.pack || 
+                       li.closest('[data-pack]')?.dataset?.pack ||
+                       app.options?.pack;
+          }
+          
+          if (!packName) {
+            console.error("DS-Reskinner | Could not determine pack name");
+            ui.notifications.error("Could not determine compendium pack");
+            return;
+          }
+          
+          // Convert pack name from format to proper UUID format
+          // draw-steel_monsters -> draw-steel.monsters
+          const packCollection = packName.replace('_', '.');
+          
+          // Correct UUID format for compendium documents
+          const uuid = `Compendium.${packCollection}.Actor.${documentId}`;
+          const actor = await fromUuid(uuid);
+          
+          if (!actor) {
+            console.error("DS-Reskinner | Could not load actor from UUID:", uuid);
+            ui.notifications.error("Could not load monster from compendium");
+            return;
+          }
+          
+          if (actor.type !== "npc") {
+            ui.notifications.warn("Only NPC monsters can be reskinned");
+            return;
+          }
+          const reskinApp = new ReskinApp(actor);
+          await reskinApp.render(true);
+          
+        } catch (err) {
+          console.error("DS-Reskinner | Error in callback:", err);
+          ui.notifications.error("Error opening reskin app: " + err.message);
+        }
+      }
+    });
+  }
 });
 //# sourceMappingURL=ds-reskinner.mjs.map
