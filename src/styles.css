@@ -155,7 +155,8 @@
 
 /* Section Header Styling */
 .damage-type-header button,
-.movement-type-header button {
+.movement-type-header button,
+.condition-swapping-header button {
   background: rgba(0, 0, 0, 0.1);
   padding: 12px;
   border-radius: 6px;
@@ -172,18 +173,21 @@
 }
 
 .damage-type-header button:hover,
-.movement-type-header button:hover {
+.movement-type-header button:hover,
+.condition-swapping-header button:hover {
   background: rgba(0, 0, 0, 0.15);
 }
 
 .damage-type-header button i,
-.movement-type-header button i {
+.movement-type-header button i,
+.condition-swapping-header button i {
   transition: transform 150ms ease;
   font-size: 12px;
 }
 
 .damage-type-header button.collapsed i,
-.movement-type-header button.collapsed i {
+.movement-type-header button.collapsed i,
+.condition-swapping-header button.collapsed i {
   transform: rotate(-90deg);
 }
 

@@ -1723,22 +1723,6 @@ class ReskinApp extends HandlebarsApplication {
         }
       }
 
-      // Apply condition swapping if requested
-      const conditionSectionOpen = this.element.querySelector('#condition-swapping-content').style.display !== 'none';
-      const sourceConditionSelect = this.element.querySelector('#source-condition');
-      const targetConditionSelect = this.element.querySelector('#target-condition');
-      let sourceCondition = null;
-      let targetCondition = null;
-      
-      if (sourceConditionSelect && targetConditionSelect) {
-        sourceCondition = sourceConditionSelect.value;
-        targetCondition = targetConditionSelect.value;
-      }
-      
-      if (conditionSectionOpen && sourceCondition && targetCondition && sourceCondition !== targetCondition) {
-        newActorData = this._replaceConditionInObject(newActorData, sourceCondition, targetCondition);
-      }
-
       // Apply level adjustment changes if level adjustment section is open
       const levelSectionOpen = this.element.querySelector('#level-adjustment-content').style.display !== 'none';
       if (levelSectionOpen) {

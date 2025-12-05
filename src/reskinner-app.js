@@ -44,6 +44,14 @@ export class ReskinApp extends HandlebarsApplication {
   ];
   
   /**
+   * Condition type constants for Draw Steel system
+   */
+  static CONDITION_TYPES = [
+    'bleeding', 'dazed', 'frightened', 'grabbed', 'prone', 
+    'restrained', 'slowed', 'taunted', 'weakened'
+  ];
+  
+  /**
    * Movement type constants for Draw Steel system
    */
   static MOVEMENT_TYPES = [
@@ -273,6 +281,25 @@ export class ReskinApp extends HandlebarsApplication {
         event.preventDefault();
         this._toggleMovementSection();
       });
+    }
+
+    // Handle condition swapping section toggle
+    const conditionToggleBtn = this.element.querySelector('#condition-swapping-toggle');
+    if (conditionToggleBtn) {
+      conditionToggleBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        this._toggleConditionSection();
+      });
+    }
+
+    // Handle condition swapping selection changes
+    const sourceConditionSelect = this.element.querySelector('#source-condition');
+    const targetConditionSelect = this.element.querySelector('#target-condition');
+    if (sourceConditionSelect) {
+      sourceConditionSelect.addEventListener('change', () => this._updateConditionValidation());
+    }
+    if (targetConditionSelect) {
+      targetConditionSelect.addEventListener('change', () => this._updateConditionValidation());
     }
 
     // Handle damage type selection changes
@@ -686,6 +713,163 @@ export class ReskinApp extends HandlebarsApplication {
   }
 
   /**
+   * Toggle condition swapping section visibility and analyze conditions
+   */
+  _toggleConditionSection() {
+    const content = this.element.querySelector('#condition-swapping-content');
+    const toggleBtn = this.element.querySelector('#condition-swapping-toggle');
+    const icon = toggleBtn?.querySelector('i');
+    
+    if (!content) return;
+
+    const isHidden = content.style.display === 'none';
+    
+    if (isHidden) {
+      // Show section and analyze conditions
+      this._analyzeConditions();
+      content.style.display = 'block';
+      if (icon) icon.classList.remove('fa-chevron-right');
+      if (icon) icon.classList.add('fa-chevron-down');
+      if (toggleBtn) toggleBtn.classList.remove('collapsed');
+    } else {
+      // Hide section
+      content.style.display = 'none';
+      if (icon) icon.classList.remove('fa-chevron-down');
+      if (icon) icon.classList.add('fa-chevron-right');
+      if (toggleBtn) toggleBtn.classList.add('collapsed');
+    }
+  }
+
+  /**
+   * Analyze conditions and update UI accordingly
+   */
+  _analyzeConditions() {
+    const conditionCounts = this._countConditionTypes();
+    const totalConditions = Object.entries(conditionCounts).filter(([_, count]) => count > 0).length;
+    
+    const analysisDiv = this.element.querySelector('#condition-analysis');
+    const controlsDiv = this.element.querySelector('#condition-swapping-controls');
+    const noConditionDiv = this.element.querySelector('#no-conditions');
+
+    if (totalConditions === 0) {
+      // No conditions found - hide controls and show message
+      analysisDiv.style.display = 'none';
+      controlsDiv.style.display = 'none';
+      noConditionDiv.style.display = 'block';
+      
+      // Close the section
+      const content = this.element.querySelector('#condition-swapping-content');
+      const toggleBtn = this.element.querySelector('#condition-swapping-toggle');
+      const icon = toggleBtn?.querySelector('i');
+      
+      setTimeout(() => {
+        content.style.display = 'none';
+        if (icon) {
+          icon.classList.remove('fa-chevron-down');
+          icon.classList.add('fa-chevron-right');
+        }
+      }, 2000);
+    } else {
+      // Conditions found - hide analysis and show controls
+      setTimeout(() => {
+        analysisDiv.style.display = 'none';
+        controlsDiv.style.display = 'block';
+        this._updateConditionOptions();
+        this._updateConditionValidation();
+      }, 500);
+      
+      // Keep no conditions hidden
+      noConditionDiv.style.display = 'none';
+    }
+  }
+
+  /**
+   * Update condition swapping dropdown options based on current counts
+   */
+  _updateConditionOptions() {
+    const conditionCounts = this._countConditionTypes();
+    
+    const sourceSelect = this.element.querySelector('#source-condition');
+    const targetSelect = this.element.querySelector('#target-condition');
+
+    if (!sourceSelect || !targetSelect) return;
+
+    // Update source select with current counts
+    sourceSelect.innerHTML = '';
+    // Add empty option to default to "no selection"
+    const emptySourceOption = document.createElement('option');
+    emptySourceOption.value = '';
+    emptySourceOption.textContent = 'Select condition...';
+    sourceSelect.appendChild(emptySourceOption);
+    
+    ReskinApp.CONDITION_TYPES.forEach(type => {
+      const option = document.createElement('option');
+      option.value = type;
+      option.textContent = `${game.i18n.localize(`DSRESKINNER.ConditionType.${type}`)} (${conditionCounts[type] || 0})`;
+      if (conditionCounts[type] === 0) option.disabled = true;
+      sourceSelect.appendChild(option);
+    });
+
+    // Update target select with all available condition types
+    targetSelect.innerHTML = '';
+    const emptyTargetOption = document.createElement('option');
+    emptyTargetOption.value = '';
+    emptyTargetOption.textContent = 'Select condition...';
+    targetSelect.appendChild(emptyTargetOption);
+    
+    ReskinApp.CONDITION_TYPES.forEach(type => {
+      const option = document.createElement('option');
+      option.value = type;
+      option.textContent = game.i18n.localize(`DSRESKINNER.ConditionType.${type}`);
+      targetSelect.appendChild(option);
+    });
+
+    this._updateConditionValidation();
+  }
+
+  /**
+   * Update condition swapping validation and preview
+   */
+  _updateConditionValidation() {
+    const sourceSelect = this.element.querySelector('#source-condition');
+    const targetSelect = this.element.querySelector('#target-condition');
+    const validationDiv = this.element.querySelector('#condition-validation');
+    const previewDiv = this.element.querySelector('#condition-preview');
+
+    if (!sourceSelect || !targetSelect || !validationDiv || !previewDiv) return;
+
+    const sourceCondition = sourceSelect.value;
+    const targetCondition = targetSelect.value;
+    const conditionCounts = this._countConditionTypes();
+
+    // Clear previous validation
+    validationDiv.innerHTML = '';
+
+    if (sourceCondition === targetCondition && sourceCondition) {
+      // Same condition selected - this means "keep as is"
+      sourceSelect.classList.remove('error');
+      targetSelect.classList.remove('error');
+      previewDiv.innerHTML = `<p class="preview-message">${game.i18n.localize('DSRESKINNER.ConditionKeepAsIs')}</p>`;
+    } else {
+      // Different conditions selected - show swap preview
+      sourceSelect.classList.remove('error');
+      targetSelect.classList.remove('error');
+      
+      if (sourceCondition && targetCondition) {
+        const count = conditionCounts[sourceCondition] || 0;
+        previewDiv.innerHTML = `<p class="preview-message">${game.i18n.format('DSRESKINNER.ConditionPreview', { 
+          count,
+          source: game.i18n.localize(`DSRESKINNER.ConditionType.${sourceCondition}`),
+          target: game.i18n.localize(`DSRESKINNER.ConditionType.${targetCondition}`)
+        })}</p>`;
+      } else if (!sourceCondition && !targetCondition) {
+        // Neither selected - default to keeping as is
+        previewDiv.innerHTML = `<p class="preview-message">${game.i18n.localize('DSRESKINNER.ConditionNoSwap')}</p>`;
+      }
+    }
+  }
+
+  /**
    * Toggle level adjustment section visibility
    */
   _toggleLevelAdjustmentSection() {
@@ -858,6 +1042,18 @@ export class ReskinApp extends HandlebarsApplication {
       sourceDamageType = sourceSelect.value;
       targetDamageType = targetSelect.value;
     }
+
+    // Get condition swapping selections
+    let sourceCondition = null;
+    let targetCondition = null;
+    const conditionSectionOpen = this.element.querySelector('#condition-swapping-content').style.display !== 'none';
+    
+    const sourceConditionSelect = this.element.querySelector('#source-condition');
+    const targetConditionSelect = this.element.querySelector('#target-condition');
+    if (sourceConditionSelect && targetConditionSelect) {
+      sourceCondition = sourceConditionSelect.value;
+      targetCondition = targetConditionSelect.value;
+    }
     
     // Replace damage types using placeholder system if requested and different
     if (sourceDamageType && targetDamageType && sourceDamageType !== targetDamageType) {
@@ -916,6 +1112,11 @@ export class ReskinApp extends HandlebarsApplication {
       if (newActorData.system.movement.disengage === undefined && this.actor.system?.movement?.disengage !== undefined) {
         newActorData.system.movement.disengage = this.actor.system.movement.disengage;
       }
+    }
+
+    // Apply condition swapping if requested
+    if (conditionSectionOpen && sourceCondition && targetCondition && sourceCondition !== targetCondition) {
+      newActorData = this._replaceConditionInObject(newActorData, sourceCondition, targetCondition);
     }
 
     // Apply level adjustment changes if level adjustment section is open
@@ -1160,6 +1361,22 @@ export class ReskinApp extends HandlebarsApplication {
         }
       }
 
+      // Apply condition swapping if requested
+      const conditionSectionOpen = this.element.querySelector('#condition-swapping-content').style.display !== 'none';
+      const sourceConditionSelect = this.element.querySelector('#source-condition');
+      const targetConditionSelect = this.element.querySelector('#target-condition');
+      let sourceCondition = null;
+      let targetCondition = null;
+      
+      if (sourceConditionSelect && targetConditionSelect) {
+        sourceCondition = sourceConditionSelect.value;
+        targetCondition = targetConditionSelect.value;
+      }
+      
+      if (conditionSectionOpen && sourceCondition && targetCondition && sourceCondition !== targetCondition) {
+        newActorData = this._replaceConditionInObject(newActorData, sourceCondition, targetCondition);
+      }
+
       // Apply level adjustment changes if level adjustment section is open
       const levelSectionOpen = this.element.querySelector('#level-adjustment-content').style.display !== 'none';
       if (levelSectionOpen) {
@@ -1344,8 +1561,13 @@ export class ReskinApp extends HandlebarsApplication {
       await Actor.create(newActorData);
       
       let message = game.i18n.format('DSRESKINNER.CreateSuccess', { name: newName });
+      
       if (sourceDamageType && targetDamageType && sourceDamageType !== targetDamageType) {
         message += ` (${game.i18n.localize(`DSRESKINNER.DamageType.${sourceDamageType}`)} → ${game.i18n.localize(`DSRESKINNER.DamageType.${targetDamageType}`)})`;
+      }
+      
+      if (sourceCondition && targetCondition && sourceCondition !== targetCondition) {
+        message += ` (${game.i18n.localize(`DSRESKINNER.ConditionType.${sourceCondition}`)} → ${game.i18n.localize(`DSRESKINNER.ConditionType.${targetCondition}`)})`;
       }
         
       ui.notifications.info(message);
@@ -1492,6 +1714,202 @@ export class ReskinApp extends HandlebarsApplication {
   _isExcludedField(parentKey) {
     const excludedFields = ['img', 'icon', 'src', 'path', 'url', 'uri', 'texture', 'srcSmall', 'srcLarge'];
     return parentKey && excludedFields.includes(parentKey.toLowerCase());
+  }
+
+  /**
+   * Count condition types in actor data
+   * @param {boolean} forceRecalc - Force recalculation
+   * @returns {Object} Object with condition type counts
+   */
+  _countConditionTypes(forceRecalc = false) {
+    if (!forceRecalc && this._conditionTypeCounts) {
+      return this._conditionTypeCounts;
+    }
+
+    const counts = {};
+    const conditionTypes = ReskinApp.CONDITION_TYPES;
+    
+    // Initialize counts to zero
+    conditionTypes.forEach(type => {
+      counts[type] = 0;
+    });
+
+    // Count conditions in actor data
+    const actorData = this.actor.toObject();
+    
+    this._countConditionTypesInObject(actorData, counts);
+    
+    this._conditionTypeCounts = counts;
+    return counts;
+  }
+
+  /**
+   * Recursively count condition types in an object, specifically targeting Active Effects and applied effects
+   * @param {*} obj - Object to traverse
+   * @param {Object} counts - Counts object to update
+   * @param {string} parentKey - Parent key for context
+   */
+  _countConditionTypesInObject(obj, counts, parentKey = '') {
+    // Skip excluded media fields EARLY
+    if (this._isExcludedField(parentKey)) {
+      return;
+    }
+
+    // Handle strings - COUNT CONDITIONS HERE (but we primarily target arrays)
+    if (typeof obj === 'string') {
+      const lowerStr = obj.toLowerCase();
+      ReskinApp.CONDITION_TYPES.forEach(conditionType => {
+        // Count whole word matches using word boundaries
+        const regex = new RegExp(`\\b${conditionType}\\b`, 'gi');
+        const matches = lowerStr.match(regex);
+        if (matches) {
+          counts[conditionType] += matches.length;
+        }
+      });
+      return; // Don't recurse further on strings
+    }
+
+    // Skip null/non-objects
+    if (obj === null || typeof obj !== 'object') {
+      return;
+    }
+
+    // Handle arrays - special targeting for statuses and applied effects
+    if (Array.isArray(obj)) {
+      obj.forEach((item, index) => {
+        this._countConditionTypesInObject(item, counts, `${parentKey}[${index}]`);
+      });
+      return;
+    }
+
+    // Handle objects - RECURSE INTO ALL values, with special handling for Active Effects
+    Object.entries(obj).forEach(([key, value]) => {
+      // Special handling for Active Effect statuses arrays
+      if (key === 'statuses' && Array.isArray(value)) {
+        value.forEach(condition => {
+          if (typeof condition === 'string') {
+            const normalizedCondition = condition.toLowerCase();
+            ReskinApp.CONDITION_TYPES.forEach(conditionType => {
+              if (normalizedCondition === conditionType) {
+                counts[conditionType] += 1;
+              }
+            });
+          }
+        });
+      }
+      
+      // Special handling for applied effects in abilities
+      if (key === 'applied' && typeof value === 'object') {
+        this._countConditionsInAppliedEffects(value, counts);
+      }
+      
+      // Continue recursion for other fields
+      this._countConditionTypesInObject(value, counts, key);
+    });
+  }
+
+  /**
+   * Count conditions specifically in applied effects structures
+   * @param {Object} appliedEffects - Applied effects object
+   * @param {Object} counts - Counts object to update
+   */
+  _countConditionsInAppliedEffects(appliedEffects, counts) {
+    Object.entries(appliedEffects).forEach(([tier, tierData]) => {
+      if (tierData && tierData.effects && typeof tierData.effects === 'object') {
+        Object.entries(tierData.effects).forEach(([conditionName, conditionData]) => {
+          if (typeof conditionName === 'string') {
+            const normalizedCondition = conditionName.toLowerCase();
+            ReskinApp.CONDITION_TYPES.forEach(conditionType => {
+              if (normalizedCondition === conditionType) {
+                counts[conditionType] += 1;
+              }
+            });
+          }
+        });
+      }
+    });
+  }
+
+  /**
+   * Replace conditions in object using configurable mapping
+   * @param {Object} obj - Object to modify
+   * @param {string} oldCondition - Condition to replace
+   * @param {string} newCondition - New condition
+   * @returns {Object} Modified object
+   */
+  _replaceConditionInObject(obj, oldCondition, newCondition) {
+    if (!obj || typeof obj !== 'object') return obj;
+
+    if (Array.isArray(obj)) {
+      return obj.map(item => {
+        if (typeof item === 'string' && item.toLowerCase() === oldCondition.toLowerCase()) {
+          return newCondition;
+        } else if (typeof item === 'object') {
+          return this._replaceConditionInObject(item, oldCondition, newCondition);
+        }
+        return item;
+      });
+    }
+
+    const newObj = { ...obj };
+    Object.entries(newObj).forEach(([key, value]) => {
+      // Skip excluded fields
+      if (this._isExcludedField(key)) {
+        return;
+      }
+      
+      // Special handling for Active Effect statuses arrays
+      if (key === 'statuses' && Array.isArray(value)) {
+        newObj[key] = value.map(status => {
+          if (typeof status === 'string' && status.toLowerCase() === oldCondition.toLowerCase()) {
+            return newCondition;
+          }
+          return status;
+        });
+      }
+      // Special handling for applied effects in abilities
+      else if (key === 'applied' && typeof value === 'object') {
+        newObj[key] = this._replaceConditionInAppliedEffects(value, oldCondition, newCondition);
+      }
+      // Handle other object values recursively
+      else if (typeof value === 'object') {
+        newObj[key] = this._replaceConditionInObject(value, oldCondition, newCondition);
+      }
+    });
+
+    return newObj;
+  }
+
+  /**
+   * Replace conditions specifically in applied effects structures
+   * @param {Object} appliedEffects - Applied effects object
+   * @param {string} oldCondition - Condition to replace
+   * @param {string} newCondition - New condition
+   * @returns {Object} Modified applied effects
+   */
+  _replaceConditionInAppliedEffects(appliedEffects, oldCondition, newCondition) {
+    const newAppliedEffects = { ...appliedEffects };
+    
+    Object.entries(newAppliedEffects).forEach(([tier, tierData]) => {
+      if (tierData && tierData.effects && typeof tierData.effects === 'object') {
+        const newEffects = { ...tierData.effects };
+        
+        Object.entries(newEffects).forEach(([conditionName, conditionData]) => {
+          if (typeof conditionName === 'string' && conditionName.toLowerCase() === oldCondition.toLowerCase()) {
+            // Replace the key with the new condition name
+            delete newEffects[conditionName];
+            newEffects[newCondition] = conditionData;
+          }
+        });
+        
+        newAppliedEffects[tier] = {
+          ...tierData,
+          effects: newEffects
+        };
+      }
+    });
+    
+    return newAppliedEffects;
   }
 
   /**
