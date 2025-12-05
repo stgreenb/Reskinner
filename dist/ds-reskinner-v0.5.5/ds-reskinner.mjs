@@ -1,4 +1,381 @@
 /**
+ * Role Modifiers for Draw Steel Monster Level Adjustment
+ * Each role has a role modifier (for stamina calculation) and damage modifier
+ */
+
+const ROLE_MODIFIERS = {
+  ambusher: { role: 20, damage: 1 },
+  artillery: { role: 10, damage: 1 },
+  brute: { role: 30, damage: 1 },
+  controller: { role: 10, damage: 0 },
+  defender: { role: 30, damage: 0 },
+  harrier: { role: 20, damage: 0 },
+  hexer: { role: 10, damage: 0 },
+  leader: { role: 0, damage: 1 },
+  mount: { role: 20, damage: 0 },
+  support: { role: 20, damage: 0 },
+  elite: { role: 0, damage: 1 }
+  // Note: leader and solo are both organizations and roles
+};
+
+/**
+ * Organization Modifiers for Draw Steel Monster Level Adjustment
+ * Multipliers for EV and stamina calculations
+ */
+
+const ORGANIZATION_MODIFIERS = {
+  'minion': 0.5,
+  'horde': 0.5,
+  'platoon': 1.0,
+  'leader': 2.0,
+  'elite': 2.0,
+  'solo': 5.0
+};
+
+const STAMINA_ONLY_MODIFIERS = {
+  'minion': 0.125,
+  'solo': 1.0  // This means "Stamina only"
+};
+
+/**
+ * Tier Damage Modifiers for Draw Steel calculations
+ */
+
+const TIER_DAMAGE_MODIFIERS = {
+  1: 0.6,
+  2: 1.1,
+  3: 1.4
+};
+
+/**
+ * Helper functions for Draw Steel Monster Level Adjustment
+ */
+
+/**
+ * Calculate echelon based on level (Draw Steel system)
+ * @param {number} level - Monster level (1-10)
+ * @returns {number} Echelon (0-3)
+ */
+const calculateEchelon = (level) => {
+  if (level <= 2) return 0;  // Levels 1-2: Echelon 0
+  if (level <= 5) return 1;  // Levels 3-5: Echelon 1  
+  if (level <= 8) return 2;  // Levels 6-8: Echelon 2
+  return 3;                  // Levels 9-10: Echelon 3
+};
+
+/**
+ * Validate if actor has required data for level adjustment
+ * @param {Actor} actor - Foundry actor to validate
+ * @returns {boolean} True if actor has required data
+ */
+const validateActorData = (actor) => {
+  // Check for Draw Steel monster structure first (priority)
+  if (actor?.system?.monster) {
+    // If the monster has level data in the Draw Steel structure, return true
+    if (actor.system.monster.level !== undefined && 
+        actor.system.monster.level !== null) {
+      return true;
+    }
+  }
+  
+  // Try alternative paths for level data - prioritize Draw Steel structure
+  const levelPaths = [
+    // Draw Steel monster structure (highest priority)
+    'system.monster.level',
+    // Standard D&D5e structure
+    'system.details.level',
+    // Other common structures
+    'system.level',
+    'system.attributes.level',
+    'level',
+    'data?.level',
+    'data?.details?.level',
+    'data?.attributes?.level',
+    // Draw Steel alternative structures
+    'system.combat.level',
+    'system.biography.level',
+    'details?.level',
+    'attributes?.level',
+    // Nested combat structures
+    'system.combat?.details.level',
+    'system.combat?.challenge.level',
+    'system.combat?.xp.level',
+  ];
+  
+  for (const path of levelPaths) {
+    const value = getNestedProperty(actor, path);
+    if (value !== undefined) {
+      return true;
+    }
+  }
+  
+  return false;
+};
+
+/**
+ * Helper function to get nested property safely
+ * @param {Object} obj - Object to search
+ * @param {string} path - Dot-separated path (e.g., 'system.details.level')
+ * @returns {*} Property value or undefined
+ */
+function getNestedProperty(obj, path) {
+  return path.split('.').reduce((current, key) => {
+    return current && current[key] !== undefined ? current[key] : undefined;
+  }, obj);
+}
+
+/**
+ * Round up to nearest whole number (Draw Steel standard)
+ * @param {number} value - Value to round
+ * @returns {number} Rounded up value
+ */
+const roundUp = (value) => Math.ceil(value);
+
+/**
+ * Encounter Value (EV) Calculator for Draw Steel Monster Level Adjustment
+ * Formula: ((2 x Level) + 4) x Organization Modifier
+ */
+
+
+/**
+ * Calculate Encounter Value (EV) for a monster
+ * @param {number} level - Target monster level (1-20)
+ * @param {string} organization - Organization type ('minion', 'horde', 'platoon', 'leader', 'elite', 'solo', 'minion-stamina', 'solo-stamina')
+ * @returns {number} Calculated EV (rounded up)
+ * @throws {Error} If organization type is invalid
+ */
+const calculateEncounterValue = (level, organization) => {
+  // Validate inputs
+  if (!Number.isInteger(level) || level < 1 || level > 20) {
+    throw new Error(`Invalid level: ${level}. Must be integer 1-20.`);
+  }
+  
+  // Check if this is a "Stamina only" organization
+  const isStaminaOnly = organization === 'minion-stamina' || organization === 'solo-stamina';
+  
+  if (isStaminaOnly) {
+    // For "Stamina only" organizations, EV uses standard calculation without multiplier
+    const ev = (2 * level) + 4;
+    return roundUp(ev);
+  }
+  
+  // For regular organizations, apply the multiplier
+  const orgMod = ORGANIZATION_MODIFIERS[organization];
+  if (orgMod === undefined) {
+    throw new Error(`Unknown organization: ${organization}`);
+  }
+  
+  // Calculate EV: ((2 x Level) + 4) x Organization Modifier
+  const ev = ((2 * level) + 4) * orgMod;
+  
+  // Round up to nearest whole number (Draw Steel standard)
+  return roundUp(ev);
+};
+
+/**
+ * Stamina Calculator for Draw Steel Monster Level Adjustment
+ * Formula: ((10 x Level) + Role Modifier) x Organization Modifier
+ */
+
+
+/**
+ * Calculate Stamina for a monster
+ * @param {number} level - Target monster level (1-20)
+ * @param {string} role - Monster role ('ambusher', 'artillery', 'brute', 'controller', 'defender', 'harrier', 'hexer', 'mount', 'support', 'elite')
+ * @param {string} organization - Organization type ('minion', 'horde', 'platoon', 'leader', 'elite', 'solo', 'minion-stamina', 'solo-stamina')
+ * @param {boolean} additionalStamina - Whether to add additional stamina for non-minion monsters
+ * @param {boolean} isLeaderOrSolo - Whether monster is a Leader or Solo organization (special case)
+ * @returns {number} Calculated stamina (rounded up)
+ * @throws {Error} If role or organization type is invalid
+ */
+const calculateStamina = (level, role, organization, additionalStamina = false, isLeaderOrSolo = false) => {
+  // Validate inputs
+  if (!Number.isInteger(level) || level < 1 || level > 20) {
+    throw new Error(`Invalid level: ${level}. Must be integer 1-20.`);
+  }
+  
+  // Special handling for Leader and Solo organizations
+  // According to AdjustingMonsters.md: Leader and Solo use role modifier of 30
+  let roleModifier;
+  if (isLeaderOrSolo) {
+    roleModifier = 30; // Fixed role modifier for Leader/Solo organizations
+  } else {
+    const roleData = ROLE_MODIFIERS[role];
+    if (roleData === undefined) {
+      throw new Error(`Unknown role: ${role}`);
+    }
+    roleModifier = roleData.role;
+  }
+  
+  // Determine appropriate multiplier based on organization type
+  const isStaminaOnly = STAMINA_ONLY_MODIFIERS[organization] !== undefined;
+  
+  let orgMod;
+  if (isStaminaOnly) {
+    // "Stamina only" organizations use different multipliers for EV and stamina
+    orgMod = STAMINA_ONLY_MODIFIERS[organization];
+    // Apply only to stamina calculation
+    let baseStamina = ((10 * level) + roleModifier) * orgMod;
+    
+    // Add additional stamina for non-minion monsters if requested
+    if (additionalStamina && !['minion', 'horde', 'platoon'].includes(organization)) {
+      const additionalAmount = (3 * level) + 3;
+      baseStamina += additionalAmount;
+    }
+    
+    return roundUp(baseStamina);
+  }
+  
+  // Regular organizations use the full multiplier for both EV and stamina
+  orgMod = ORGANIZATION_MODIFIERS[organization];
+  if (orgMod === undefined) {
+    throw new Error(`Unknown organization: ${organization}`);
+  }
+  
+  // Calculate base stamina: ((10 x Level) + Role Modifier) x Organization Modifier
+  const baseStamina = ((10 * level) + roleModifier) * orgMod;
+  
+  // Add additional stamina for non-minion monsters if requested
+  if (additionalStamina && !organization.includes('minion')) {
+    const additionalAmount = (3 * level) + 3;
+    baseStamina += additionalAmount;
+  }
+  
+  // Round up to nearest whole number (Draw Steel standard)
+  return roundUp(baseStamina);
+};
+
+/**
+ * Damage Calculator for Draw Steel Monster Level Adjustment
+ * Formula: (4 + Level + Damage Modifier) x Tier Modifier
+ * Special Rules:
+ * - Elite organization can combine with +1 damage roles for +2 total
+ * - Horde and minion damage is halved
+ */
+
+
+/**
+ * Calculate damage for a monster ability
+ * @param {number} level - Target monster level (1-20)
+ * @param {string} role - Monster role (used for damage modifier)
+ * @param {string} organization - Monster organization (for Elite combination rule and Leader/Solo damage modifiers)
+ * @param {number} tier - Power roll tier (1, 2, or 3)
+ * @param {boolean} isStrike - Whether this is a strike attack (adds characteristic)
+ * @param {number} highestCharacteristic - Monster's highest characteristic (added for strikes)
+ * @returns {number} Calculated damage (rounded up)
+ * @throws {Error} If inputs are invalid
+ */
+const calculateDamage = (level, role, organization, tier, isStrike = false, highestCharacteristic = 0) => {
+  // Validate inputs
+  if (!Number.isInteger(level) || level < 1 || level > 20) {
+    throw new Error(`Invalid level: ${level}. Must be integer 1-20.`);
+  }
+  
+  if (![1, 2, 3].includes(tier)) {
+    throw new Error(`Invalid tier: ${tier}. Must be 1, 2, or 3.`);
+  }
+  
+  // Special handling for Leader and Solo organizations
+  let damageModifier;
+  if (organization === 'leader') {
+    damageModifier = 1; // Leader organization uses +1 damage modifier
+  } else if (organization === 'solo') {
+    damageModifier = 2; // Solo organization uses +2 damage modifier
+  } else if (role) {
+    const roleData = ROLE_MODIFIERS[role];
+    if (roleData === undefined) {
+      throw new Error(`Unknown role: ${role}`);
+    }
+    damageModifier = roleData.damage;
+    
+    // Elite organization can combine with +1 damage roles for +2 total
+    if (organization === 'elite' && roleData.damage === 1) {
+      damageModifier = 2;
+    }
+  } else {
+    // No role and not Leader/Solo - use 0 damage modifier
+    damageModifier = 0;
+  }
+  
+  if (isStrike && (highestCharacteristic < 1 || highestCharacteristic > 10)) {
+    throw new Error(`Invalid characteristic: ${highestCharacteristic}. Must be 1-10.`);
+  }
+  
+  const tierMod = TIER_DAMAGE_MODIFIERS[tier];
+  
+  // Calculate base damage: (4 + Level + Damage Modifier) x Tier Modifier
+  let baseDamage = 4 + level + damageModifier;
+  
+  // Add characteristic for strike attacks
+  if (isStrike) {
+    baseDamage += highestCharacteristic;
+  }
+  
+  // Apply tier modifier
+  let damage = baseDamage * tierMod;
+  
+  // Halve damage for horde and minion monsters
+  const isHordeOrMinion = organization === 'horde' || organization.includes('minion');
+  if (isHordeOrMinion) {
+    damage = damage / 2;
+  }
+  
+  // Round up to nearest whole number (Draw Steel standard)
+  return roundUp(damage);
+};
+
+/**
+ * Characteristic Calculator for Draw Steel Monster Level Adjustment
+ * Calculates power roll bonuses and potencies based on echelon
+ */
+
+
+/**
+ * Calculate power roll bonus and potency values for a monster
+ * @param {number} level - Target monster level (1-20)
+ * @param {boolean} isLeaderOrSolo - Whether monster is leader or solo (adds +1 bonus)
+ * @returns {object} Object with powerRollBonus and potencies by tier
+ * @throws {Error} If level is invalid
+ */
+const calculateCharacteristics = (level, isLeaderOrSolo = false) => {
+  // Validate input
+  if (!Number.isInteger(level) || level < 1 || level > 20) {
+    throw new Error(`Invalid level: ${level}. Must be integer 1-20.`);
+  }
+  
+  // Calculate echelon
+  const echelon = calculateEchelon(level);
+  
+  // Base power roll bonus: 1 + echelon
+  let powerRollBonus = 1 + echelon;
+  
+  // Leader and solo monsters get +1 bonus (max +5)
+  if (isLeaderOrSolo) {
+    powerRollBonus = Math.min(powerRollBonus + 1, 5);
+  }
+  
+  // Calculate potencies by tier
+  // Potency = characteristic - (tier distance from tier 3)
+  const potencies = {
+    1: Math.max(powerRollBonus - 2, 1),  // Tier 1: characteristic - 2, minimum 1
+    2: Math.max(powerRollBonus - 1, 1),  // Tier 2: characteristic - 1, minimum 1
+    3: Math.max(powerRollBonus, 1)       // Tier 3: characteristic + 0, minimum 1
+  };
+  
+  // Leader and solo monsters get +1 potency at all tiers (max +6)
+  if (isLeaderOrSolo) {
+    potencies[1] = Math.min(potencies[1] + 1, 6);
+    potencies[2] = Math.min(potencies[2] + 1, 6);
+    potencies[3] = Math.min(potencies[3] + 1, 6);
+  }
+  
+  return {
+    powerRollBonus,
+    potencies
+  };
+};
+
+/**
  * ReskinApp - Main application for reskinning monsters (Draw Steel V13 Compatible)
  */
 
@@ -8,24 +385,9 @@
 const HandlebarsApplication = foundry.applications.api.HandlebarsApplicationMixin(foundry.applications.api.ApplicationV2);
 
 /**
- * Import level adjustment calculation functions
- */
-import {
-  calculateEncounterValue,
-  calculateStamina,
-  calculateDamage,
-  calculateCharacteristics,
-  applyAbilityScaling,
-  ROLE_MODIFIERS,
-  ORGANIZATION_MODIFIERS,
-  validateActorData,
-  validateLevel
-} from './calculators/index.js';
-
-/**
  * The Reskin application window
  */
-export class ReskinApp extends HandlebarsApplication {
+class ReskinApp extends HandlebarsApplication {
   /**
    * Define the template parts for this application.
    */
@@ -951,7 +1313,7 @@ export class ReskinApp extends HandlebarsApplication {
     const roleSelect = this.element.querySelector('#monster-role');
     const organizationSelect = this.element.querySelector('#monster-organization');
     const previewDiv = this.element.querySelector('#level-preview');
-    const applyBtn = this.element.querySelector('#apply-level-adjustment');
+    this.element.querySelector('#apply-level-adjustment');
     
     if (!levelInput || !organizationSelect) return;
 
@@ -1975,18 +2337,9 @@ export class ReskinApp extends HandlebarsApplication {
     }
 
     const counts = {};
-    
-    // Items are at the root level of the actor data, not in the system
     const actorData = this.actor.system || this.actor.data?.system || {};
-    const rawData = this.actor.toObject ? this.actor.toObject() : this.actor.data || {};
 
-    // Check both system data and root level items
     this._countSignatureAbilitiesInObject(actorData, counts);
-    
-    // Also check items at the root level (where Draw Steel abilities actually are)
-    if (rawData.items) {
-      this._countSignatureAbilitiesInObject({ items: rawData.items }, counts);
-    }
     
     // Sort signature abilities alphabetically by name
     const sortedCounts = {};
@@ -2607,3 +2960,138 @@ export class ReskinApp extends HandlebarsApplication {
 
 
 }
+
+/**
+ * Draw Steel Reskinner Module
+ * A Foundry VTT module for reskinning Draw Steel monsters
+ * Version: INJECTED_AT_BUILD_TIME - This will be replaced by package.json version during build
+ */
+
+
+// Define the validation function and make it globally accessible
+function isReskinnableMonster(actor) {
+  return actor && actor.type === "npc";
+}
+
+// Make function globally available for testing and module access
+window.isReskinnableMonster = isReskinnableMonster;
+
+// Register hooks once when Foundry starts
+Hooks.once("init", () => {
+  console.log("DS-Reskinner | Initializing hooks");
+});
+
+// Simple hook for actor sheets - works with some systems
+Hooks.on("getActorSheetHeaderButtons", (sheet, buttons) => {
+  const actor = sheet.actor;
+  if (!actor || !isReskinnableMonster(actor)) return;
+
+  buttons.unshift({
+    class: "reskin-actor",
+    icon: "fas fa-palette", 
+    label: game.i18n.localize("DSRESKINNER.Reskin"),
+    onclick: async () => {
+      const reskinApp = new ReskinApp(actor);
+      await reskinApp(true);
+    }
+  });
+});
+
+// Actor directory and compendium context menu - this works reliably
+Hooks.on("getActorContextOptions", (app, menuItems) => {
+  // Check if this is a compendium directory
+  const isCompendium = app.constructor.name.includes("Compendium");
+  
+  // Add context menu option for actor directory
+  if (!isCompendium) {
+    menuItems.push({
+      name: game.i18n.localize("DSRESKINNER.ReskinMonster"),
+      icon: '<i class="fas fa-palette"></i>',
+      condition: li => {
+        const actorId = li.dataset.documentId || li.dataset.entryId;
+        if (!actorId) return false;
+        const actor = game.actors.get(actorId);
+        return isReskinnableMonster(actor);
+      },
+      callback: async li => {
+        const actorId = li.dataset.documentId || li.dataset.entryId;
+        const actor = game.actors.get(actorId);
+        if (!actor) return;
+        const app = new ReskinApp(actor);
+        await app.render(true);
+      }
+    });
+  }
+  
+  // Add context menu option for compendium
+  if (isCompendium && game.system.id === "draw-steel") {
+    
+    menuItems.push({
+      name: game.i18n.localize("DSRESKINNER.ReskinAndImport"),
+      icon: '<i class="fas fa-palette"></i>',
+      condition: (li) => {
+        // li is the entry element clicked
+        const documentId = li.dataset.documentId || li.dataset.entryId;
+        return !!documentId;
+      },
+      callback: async (li) => {
+        const documentId = li.dataset.documentId || li.dataset.entryId;
+        if (!documentId) return;
+        
+        try {
+          // Get the compendium pack name from app ID - most reliable for V13
+          let packName = null;
+          
+          // Extract from app ID (format: compendium-{packname})
+          if (app.options?.id) {
+            const appId = app.options.id;
+            const match = appId.match(/^compendium-(.+)$/);
+            if (match) {
+              packName = match[1];
+            }
+          }
+          
+          // Fallback to DOM data attributes
+          if (!packName) {
+            const directory = li.closest('.directory');
+            packName = directory?.dataset?.pack || 
+                       li.closest('[data-pack]')?.dataset?.pack ||
+                       app.options?.pack;
+          }
+          
+          if (!packName) {
+            console.error("DS-Reskinner | Could not determine pack name");
+            ui.notifications.error("Could not determine compendium pack");
+            return;
+          }
+          
+          // Convert pack name from format to proper UUID format
+          // draw-steel_monsters -> draw-steel.monsters
+          const packCollection = packName.replace('_', '.');
+          
+          // Correct UUID format for compendium documents
+          const uuid = `Compendium.${packCollection}.Actor.${documentId}`;
+          const actor = await fromUuid(uuid);
+          
+          if (!actor) {
+            console.error("DS-Reskinner | Could not load actor from UUID:", uuid);
+            ui.notifications.error("Could not load monster from compendium");
+            return;
+          }
+          
+          if (actor.type !== "npc") {
+            ui.notifications.warn("Only NPC monsters can be reskinned");
+            return;
+          }
+          const reskinApp = new ReskinApp(actor);
+          await reskinApp.render(true);
+          
+        } catch (err) {
+          console.error("DS-Reskinner | Error in callback:", err);
+          ui.notifications.error("Error opening reskin app: " + err.message);
+        }
+      }
+    });
+  }
+});
+//# sourceMappingURL=ds-reskinner.mjs.map

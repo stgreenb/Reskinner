@@ -105,6 +105,26 @@
       "OrganizationSoloStamina": "Solo (Stamina)",
       "SuccessMessage": "Level adjustment applied successfully!",
       "ErrorMessage": "Error applying level adjustment"
+    },
+    "ConditionSwapping": "Condition Swapping",
+    "ConditionSwappingAnalyzing": "Analyzing conditions...",
+    "SourceCondition": "Source Condition",
+    "TargetCondition": "Target Condition",
+    "SelectCondition": "Select condition...",
+    "ConditionPreview": "Will replace {count} instance(s) of {source} with {target}",
+    "ConditionKeepAsIs": "Keeping conditions as they are (no changes)",
+    "ConditionNoSwap": "Conditions will remain unchanged",
+    "NoConditions": "No conditions detected in this monster",
+    "ConditionType": {
+      "bleeding": "Bleeding",
+      "dazed": "Dazed",
+      "frightened": "Frightened",
+      "grabbed": "Grabbed",
+      "prone": "Prone",
+      "restrained": "Restrained",
+      "slowed": "Slowed",
+      "taunted": "Taunted",
+      "weakened": "Weakened"
     }
   }
 }

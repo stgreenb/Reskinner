@@ -170,6 +170,52 @@
     </div>
   </div>
 
+  <!-- Condition Swapping Section -->
+  <div class="form-group condition-swapping-section">
+    <div class="condition-swapping-header">
+      <button type="button" class="condition-swapping-toggle collapsed" id="condition-swapping-toggle">
+        <i class="fas fa-chevron-right"></i>
+        {{localize "DSRESKINNER.ConditionSwapping"}}
+      </button>
+    </div>
+    
+    <div class="condition-swapping-content" id="condition-swapping-content" style="display: none;">
+      <div class="condition-analysis" id="condition-analysis">
+        <p class="analyze-message">{{localize "DSRESKINNER.ConditionSwappingAnalyzing"}}</p>
+      </div>
+      
+      <div class="condition-swapping-controls" id="condition-swapping-controls" style="display: none;">
+        <div class="form-row-two-column">
+          <div class="form-item">
+            <label for="source-condition">{{localize "DSRESKINNER.SourceCondition"}}</label>
+            <select id="source-condition" name="sourceCondition">
+              <option value="">{{localize "DSRESKINNER.SelectCondition"}}</option>
+            </select>
+          </div>
+
+          <div class="form-item">
+            <label for="target-condition">{{localize "DSRESKINNER.TargetCondition"}}</label>
+            <select id="target-condition" name="targetCondition">
+              <option value="">{{localize "DSRESKINNER.SelectCondition"}}</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="condition-preview" id="condition-preview">
+          <p class="preview-message">{{localize "DSRESKINNER.ConditionPreview"}}</p>
+        </div>
+        
+        <div class="condition-validation" id="condition-validation">
+          <!-- Validation messages will be inserted here -->
+        </div>
+      </div>
+      
+      <div class="no-conditions" id="no-conditions" style="display: none;">
+        <p class="no-condition-message">{{localize "DSRESKINNER.NoConditions"}}</p>
+      </div>
+    </div>
+  </div>
+
   <!-- Level Adjustment Section -->
   {{#if hasLevelAdjustment}}
   <div class="form-group level-adjustment-section">

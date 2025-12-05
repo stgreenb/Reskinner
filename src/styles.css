@@ -734,6 +734,117 @@
   }
 }
 
+/* Signature Ability Swapping Section Styles */
+.signature-ability-header {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.signature-ability-header button {
+  background: rgba(0, 0, 0, 0.1);
+  padding: 12px;
+  border-radius: 6px;
+  transition: background 150ms;
+  width: 100%;
+  text-align: left;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+}
+
+.signature-ability-header button:hover {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.signature-ability-header button i {
+  transition: transform 150ms ease;
+  font-size: 12px;
+}
+
+.signature-ability-header button.collapsed i {
+  transform: rotate(-90deg);
+}
+
+.signature-ability-content {
+  padding: 0.75rem;
+}
+
+/* Signature Ability Controls */
+.signature-ability-item {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: var(--color-secondary);
+}
+
+.signature-ability-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #f5f5f5;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.signature-ability-item input[type="text"] {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  height: auto;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.signature-ability-item input[type="text"]:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.signature-ability-item input[type="text"]::placeholder {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.signature-ability-preview {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.signature-ability-preview .preview-text {
+  color: var(--color-success);
+  font-weight: 500;
+}
+
+.signature-ability-analysis,
+.signature-ability-validation {
+  margin: 0.75rem 0;
+}
+
+.signature-ability-validation p {
+  margin: 0;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+}
+
+.signature-abilities-list {
+  margin-bottom: 1rem;
+}
+
+.no-signature-abilities {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  font-style: italic;
+  text-align: center;
+  padding: 1rem;
+}
+
 /* Override conflicts */
 .level-preview {
   background: var(--color-surface) !important;

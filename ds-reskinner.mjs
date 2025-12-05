@@ -654,6 +654,15 @@ class ReskinApp extends HandlebarsApplication {
       });
     }
 
+    // Handle signature ability swapping section toggle
+    const signatureAbilityToggleBtn = this.element.querySelector('#signature-ability-toggle');
+    if (signatureAbilityToggleBtn) {
+      signatureAbilityToggleBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        this._toggleSignatureAbilitySection();
+      });
+    }
+
     // Handle condition swapping selection changes
     const sourceConditionSelect = this.element.querySelector('#source-condition');
     const targetConditionSelect = this.element.querySelector('#target-condition');
@@ -755,8 +764,14 @@ class ReskinApp extends HandlebarsApplication {
     
     super(appOptions);
     
+    // Log the loaded version for debugging
+    const moduleVersion = game.modules.get('ds-reskinner')?.version || 'Unknown';
+    console.log(`DS-Reskinner | Version ${moduleVersion} loaded with signature ability support`);
+    console.log(`DS-Reskinner | Actor: ${actor?.name || 'Unknown'} (${actor.id})`);
+    
     this.actor = actor;
     this._damageTypeCounts = null;
+    this._signatureAbilityCache = null; // For caching signature ability counts
     this._placeholders = new Map(); // For preventing double-swapping
     
   }
@@ -1739,6 +1754,18 @@ class ReskinApp extends HandlebarsApplication {
         newActorData = this._replaceConditionInObject(newActorData, sourceCondition, targetCondition);
       }
 
+      // Apply signature ability name swapping if requested
+      const signatureAbilitySectionOpen = this.element.querySelector('#signature-ability-content').style.display !== 'none';
+      if (signatureAbilitySectionOpen) {
+        const signatureAbilities = this._collectSignatureAbilitiesToRename();
+        
+        signatureAbilities.forEach(mapping => {
+          if (mapping.newName && mapping.newName.trim() && mapping.newName.trim() !== mapping.originalName) {
+            newActorData = this._replaceSignatureAbilityNameInObject(newActorData, mapping.originalName, mapping.newName.trim());
+          }
+        });
+      }
+
       // Apply level adjustment changes if level adjustment section is open
       const levelSectionOpen = this.element.querySelector('#level-adjustment-content').style.display !== 'none';
       if (levelSectionOpen) {
@@ -1930,6 +1957,27 @@ class ReskinApp extends HandlebarsApplication {
       
       if (sourceCondition && targetCondition && sourceCondition !== targetCondition) {
         message += ` (${game.i18n.localize(`DSRESKINNER.ConditionType.${sourceCondition}`)} → ${game.i18n.localize(`DSRESKINNER.ConditionType.${targetCondition}`)})`;
+      }
+
+      // Add signature ability changes to success message
+      const sigAbilitySectionOpen = this.element.querySelector('#signature-ability-content').style.display !== 'none';
+      if (sigAbilitySectionOpen) {
+        const signatureAbilities = this._collectSignatureAbilitiesToRename();
+        const changes = signatureAbilities.filter(mapping => mapping.newName && mapping.newName.trim() && mapping.newName.trim() !== mapping.originalName);
+        
+        if (changes.length > 0) {
+          const changesList = changes.map(mapping => 
+            game.i18n.format('DSRESKINNER.SignatureAbilityRenameItem', { 
+              original: mapping.originalName, 
+              new: mapping.newName.trim() 
+            })
+          ).join(', ');
+          
+          message += ` (${game.i18n.format('DSRESKINNER.SignatureAbilitySuccessMessage', { 
+            count: changes.length,
+            changes: changesList 
+          })})`;
+        }
       }
         
       ui.notifications.info(message);
@@ -2272,6 +2320,318 @@ class ReskinApp extends HandlebarsApplication {
     });
     
     return newAppliedEffects;
+  }
+
+  /**
+   * Count signature abilities in actor data
+   * @param {boolean} forceRecalc - Force recalculation even if cached
+   * @returns {Object} Object mapping signature ability names to counts
+   */
+  _countSignatureAbilities(forceRecalc = false) {
+    console.log(`DS-Reskinner | _countSignatureAbilities called (forceRecalc: ${forceRecalc})`);
+    
+    // Check cache first - handle null/undefined properly
+    if (this._signatureAbilityCache !== null && this._signatureAbilityCache !== undefined && !forceRecalc) {
+      console.log(`DS-Reskinner | Returning cached signature abilities:`, this._signatureAbilityCache);
+      return this._signatureAbilityCache;
+    }
+
+    const counts = {};
+    
+    // Items are at the root level of the actor data, not in the system
+    const actorData = this.actor.system || this.actor.data?.system || {};
+    const rawData = this.actor.toObject ? this.actor.toObject() : this.actor.data || {};
+
+    // Check both system data and root level items
+    this._countSignatureAbilitiesInObject(actorData, counts);
+    
+    // Also check items at the root level (where Draw Steel abilities actually are)
+    if (rawData.items) {
+      this._countSignatureAbilitiesInObject({ items: rawData.items }, counts);
+    }
+    
+    // Sort signature abilities alphabetically by name
+    const sortedCounts = {};
+    Object.keys(counts).sort().forEach(name => {
+      sortedCounts[name] = counts[name];
+    });
+
+    // Cache result
+    this._signatureAbilityCache = sortedCounts;
+    console.log(`DS-Reskinner | Detected signature abilities:`, sortedCounts);
+    return sortedCounts;
+  }
+
+  /**
+   * Recursively count signature abilities in an object
+   * @param {Object} obj - Object to scan
+   * @param {Object} counts - Counts object to update
+   * @param {string} parentKey - Parent key for context
+   */
+  _countSignatureAbilitiesInObject(obj, counts, parentKey = '') {
+    if (!obj || typeof obj !== 'object') return;
+
+    if (Array.isArray(obj)) {
+      obj.forEach((item, index) => {
+        this._countSignatureAbilitiesInObject(item, counts, `${parentKey}[${index}]`);
+      });
+      return;
+    }
+
+    Object.entries(obj).forEach(([key, value]) => {
+      // Check if this item is an ability with signature category
+      if (key === 'type' && value === 'ability' && typeof obj === 'object') {
+        if (obj.system && obj.system.category === 'signature' && obj.name) {
+          const abilityName = obj.name;
+          counts[abilityName] = (counts[abilityName] || 0) + 1;
+        }
+      }
+      
+      // Continue recursion for all fields
+      if (typeof value === 'object') {
+        this._countSignatureAbilitiesInObject(value, counts, key);
+      }
+    });
+  }
+
+  /**
+   * Replace signature ability names in object using configurable mapping
+   * @param {Object} obj - Object to modify
+   * @param {string} oldName - Old ability name to replace
+   * @param {string} newName - New ability name
+   * @returns {Object} Modified object
+   */
+  _replaceSignatureAbilityNameInObject(obj, oldName, newName) {
+    if (!obj || typeof obj !== 'object') return obj;
+
+    if (Array.isArray(obj)) {
+      return obj.map(item => {
+        if (typeof item === 'object') {
+          // Check if this array item is a signature ability
+          if (item.type === 'ability' && item.system && item.system.category === 'signature') {
+            const updatedItem = { ...item };
+            if (updatedItem.name === oldName) {
+              updatedItem.name = newName;
+            }
+            return updatedItem;
+          }
+          return this._replaceSignatureAbilityNameInObject(item, oldName, newName);
+        }
+        return item;
+      });
+    }
+
+    const newObj = { ...obj };
+    Object.entries(newObj).forEach(([key, value]) => {
+      // Check if this object is a signature ability
+      if (key === 'type' && value === 'ability' && typeof obj === 'object') {
+        if (obj.system && obj.system.category === 'signature' && obj.name === oldName) {
+          newObj.name = newName;
+        }
+      }
+      
+      // Handle other object values recursively
+      else if (typeof value === 'object') {
+        newObj[key] = this._replaceSignatureAbilityNameInObject(value, oldName, newName);
+      }
+    });
+
+    return newObj;
+  }
+
+  /**
+   * Toggle signature ability swapping section visibility and analyze signature abilities
+   */
+  _toggleSignatureAbilitySection() {
+    const content = this.element.querySelector('#signature-ability-content');
+    const toggleBtn = this.element.querySelector('#signature-ability-toggle');
+    const icon = toggleBtn?.querySelector('i');
+    
+    if (!content) return;
+
+    const isHidden = content.style.display === 'none';
+    
+    if (isHidden) {
+      // Show section and analyze signature abilities
+      this._analyzeSignatureAbilities();
+      content.style.display = 'block';
+      if (icon) icon.classList.remove('fa-chevron-right');
+      if (icon) icon.classList.add('fa-chevron-down');
+      if (toggleBtn) toggleBtn.classList.remove('collapsed');
+    } else {
+      // Hide section
+      content.style.display = 'none';
+      if (icon) icon.classList.remove('fa-chevron-down');
+      if (icon) icon.classList.add('fa-chevron-right');
+      if (toggleBtn) toggleBtn.classList.add('collapsed');
+    }
+  }
+
+  /**
+   * Analyze signature abilities and update UI accordingly
+   */
+  _analyzeSignatureAbilities() {
+    const abilityCounts = this._countSignatureAbilities();
+    const totalAbilities = Object.keys(abilityCounts).length;
+    
+    const analysisDiv = this.element.querySelector('#signature-ability-analysis');
+    const controlsDiv = this.element.querySelector('#signature-ability-controls');
+    const noAbilityDiv = this.element.querySelector('#no-signature-abilities');
+
+    if (totalAbilities === 0) {
+      // No signature abilities found - hide controls and show message
+      analysisDiv.style.display = 'none';
+      controlsDiv.style.display = 'none';
+      noAbilityDiv.style.display = 'block';
+      
+      // Close the section after 2 seconds
+      const content = this.element.querySelector('#signature-ability-content');
+      const toggleBtn = this.element.querySelector('#signature-ability-toggle');
+      const icon = toggleBtn?.querySelector('i');
+      
+      setTimeout(() => {
+        content.style.display = 'none';
+        if (icon) {
+          icon.classList.remove('fa-chevron-down');
+          icon.classList.add('fa-chevron-right');
+        }
+      }, 2000);
+    } else {
+      // Signature abilities found - show controls
+      setTimeout(() => {
+        analysisDiv.style.display = 'none';
+        controlsDiv.style.display = 'block';
+        this._updateSignatureAbilityOptions();
+        this._updateSignatureAbilityValidation();
+      }, 500);
+      
+      // Keep no abilities hidden
+      noAbilityDiv.style.display = 'none';
+    }
+  }
+
+  /**
+   * Update signature ability swapping input fields based on current signature abilities
+   */
+  _updateSignatureAbilityOptions() {
+    const abilityCounts = this._countSignatureAbilities();
+    const abilitiesList = document.getElementById('signature-abilities-list');
+
+    if (!abilitiesList) return;
+
+    // Clear current content
+    abilitiesList.innerHTML = '';
+
+    // Create input field for each signature ability
+    Object.entries(abilityCounts).forEach(([abilityName, count]) => {
+      const abilityDiv = document.createElement('div');
+      abilityDiv.className = 'signature-ability-item';
+      
+      abilityDiv.innerHTML = `
+        <label class="signature-ability-label" for="signature-ability-${this._sanitizeId(abilityName)}">
+          ${game.i18n.format('DSRESKINNER.SignatureAbilityName', { name: abilityName })}
+        </label>
+        <input type="text" 
+               id="signature-ability-${this._sanitizeId(abilityName)}"
+               name="signatureAbilities[${abilityName}]" 
+               placeholder="${game.i18n.localize('DSRESKINNER.SignatureAbilityNewName')}"
+               maxlength="100"
+               data-original-name="${abilityName}">
+        <div class="signature-ability-preview" id="preview-${this._sanitizeId(abilityName)}"></div>
+      `;
+      
+      abilitiesList.appendChild(abilityDiv);
+
+      // Add input event listener for real-time preview
+      const input = abilityDiv.querySelector('input');
+      const preview = abilityDiv.querySelector('.signature-ability-preview');
+      
+      input.addEventListener('input', () => {
+        this._updateSignatureAbilityPreview(input, preview);
+      });
+      
+      // Initial preview
+      this._updateSignatureAbilityPreview(input, preview);
+    });
+  }
+
+  /**
+   * Update signature ability validation and preview
+   */
+  _updateSignatureAbilityValidation() {
+    const signatureAbilities = this._collectSignatureAbilitiesToRename();
+    const validationDiv = this.element.querySelector('#signature-ability-validation');
+
+    if (!validationDiv) return;
+
+    const changes = signatureAbilities.filter(mapping => mapping.newName && mapping.newName.trim() && mapping.newName.trim() !== mapping.originalName);
+
+    if (changes.length === 0) {
+      validationDiv.innerHTML = `<p class="keep-message">${game.i18n.localize('DSRESKINNER.SignatureAbilityKeepAsIs')}</p>`;
+    } else {
+      const changesList = changes.map(mapping => 
+        game.i18n.format('DSRESKINNER.SignatureAbilityRenameItem', { 
+          original: mapping.originalName, 
+          new: mapping.newName.trim() 
+        })
+      ).join(', ');
+      
+      validationDiv.innerHTML = `<p class="preview-message">${game.i18n.format('DSRESKINNER.SignatureAbilityPreview', { 
+        count: changes.length,
+        changes: changesList 
+      })}</p>`;
+    }
+  }
+
+  /**
+   * Collect signature abilities to rename from form inputs
+   * @returns {Array} Array of {originalName, newName} mappings
+   */
+  _collectSignatureAbilitiesToRename() {
+    const signatureAbilities = [];
+    const inputs = this.element.querySelectorAll('input[name^="signatureAbilities["]');
+
+    inputs.forEach(input => {
+      const originalName = input.dataset.originalName;
+      const newName = input.value.trim();
+      
+      if (originalName && newName) {
+        signatureAbilities.push({
+          originalName,
+          newName
+        });
+      }
+    });
+
+    return signatureAbilities;
+  }
+
+  /**
+   * Update individual signature ability preview
+   * @param {HTMLInputElement} input - Input element
+   * @param {HTMLElement} preview - Preview element
+   */
+  _updateSignatureAbilityPreview(input, preview) {
+    const originalName = input.dataset.originalName;
+    const newName = input.value.trim();
+
+    if (!newName || newName === originalName) {
+      preview.innerHTML = '';
+    } else {
+      preview.innerHTML = `<span class="preview-text">${game.i18n.format('DSRESKINNER.SignatureAbilityRenamePreview', { 
+        original: originalName, 
+        new: newName 
+      })}</span>`;
+    }
+  }
+
+  /**
+   * Sanitize string for use in HTML ID
+   * @param {string} str - String to sanitize
+   * @returns {string} Sanitized string
+   */
+  _sanitizeId(str) {
+    return str.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
   }
 
   /**
