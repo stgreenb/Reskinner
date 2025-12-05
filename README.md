@@ -13,6 +13,8 @@ Draw Steel rules provide guidance on how to reskin a monster and so I created a 
   - Right now the image is changing both the character art and token. I could split this.
 - Swap one damage type for another (global find and replace)
   - Only does 1 for now, might add more.
+- Swap one condition for another
+  - Again, might add option for more than 1. 
 - Movement type addition / removal
 - Change level & Role
   - I put some restrictions on Role changes. So a leader an solo can only swap between them and the others can't become one (because you'd have to add villan actions)
