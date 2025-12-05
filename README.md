@@ -16,6 +16,7 @@ Draw Steel rules provide guidance on how to reskin a monster and so I created a 
 - Swap one condition for another
   - Again, might add option for more than 1. 
 - Movement type addition / removal
+- Swapping of singature action names. 
 - Change level & Role
   - I put some restrictions on Role changes. So a leader an solo can only swap between them and the others can't become one (because you'd have to add villan actions)
 
