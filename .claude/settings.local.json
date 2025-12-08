@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(npm run build)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_evaluate",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_install",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_wait_for",
+      "mcp__perplexity__search",
+      "mcp__perplexity__perplexity_converse",
+      "mcp__perplexity__fetch",
+      "Bash(openspec list)",
+      "Bash(openspec list --specs)",
+      "Bash(mkdir -p openspec/changes/scope-css-styles)",
+      "Bash(openspec validate scope-css-styles --strict)",
+      "Bash(openspec show scope-css-styles)",
+      "Bash(git add .)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

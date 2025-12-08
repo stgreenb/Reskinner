@@ -1,0 +1,365 @@
+<section class="reskinner-form">
+  <div class="form-group token-name-header">
+  <div class="token-image-container" id="token-image-container">
+    {{#if tokenImage}}
+      <img src="{{tokenImage}}" alt="{{localize "DSRESKINNER.TokenImageAlt"}}" 
+           class="token-image" id="token-image"
+           aria-label="{{localize "DSRESKINNER.TokenImageAriaLabel"}}"
+           title="{{localize "DSRESKINNER.TokenImageTitle"}}">
+    {{else}}
+      <div class="token-placeholder" id="token-placeholder"
+           aria-label="{{localize "DSRESKINNER.TokenPlaceholderAriaLabel"}}"
+           title="{{localize "DSRESKINNER.TokenImageTitle"}}">
+        <i class="fas fa-image"></i>
+      </div>
+    {{/if}}
+    <input type="hidden" id="token-image-path" name="tokenImagePath" value="{{tokenImage}}">
+  </div>
+  
+  <div class="info-section">
+    <label for="actorName">{{localize "DSRESKINNER.ReskinnedMonsterName"}}</label>
+    <input type="text" id="actorName" name="actorName" value="{{actorName}}" required maxlength="100">
+    <p class="note">{{localize "DSRESKINNER.OriginalUnchanged"}}</p>
+  </div>
+</div>
+
+  <!-- Damage Type Replacement Section -->
+  <div class="form-group damage-type-section">
+    <div class="damage-type-header">
+      <button type="button" class="damage-type-toggle collapsed" id="damage-type-toggle">
+        <i class="fas fa-chevron-right"></i>
+        {{localize "DSRESKINNER.DamageTypeReplacements"}}
+      </button>
+    </div>
+    
+    <div class="damage-type-content" id="damage-type-content" style="display: none;">
+      <div class="damage-analysis" id="damage-analysis">
+        <p class="analyze-message">{{localize "DSRESKINNER.DamageTypeAnalyzing"}}</p>
+      </div>
+      
+      <div class="damage-type-controls" id="damage-type-controls" style="display: none;">
+        <div class="form-row-two-column">
+          <div class="form-item">
+            <label for="source-damage-type">{{localize "DSRESKINNER.SourceDamageType"}}</label>
+            <select id="source-damage-type" name="sourceDamageType">
+              {{#each damageTypes}}
+              <option value="{{this.type}}" {{#if (eq this.count 0)}}disabled{{/if}}>
+                {{localize (concat "DSRESKINNER.DamageType." this.type)}} ({{this.count}})
+              </option>
+              {{/each}}
+            </select>
+          </div>
+
+          <div class="form-item">
+            <label for="target-damage-type">{{localize "DSRESKINNER.TargetDamageType"}}</label>
+            <select id="target-damage-type" name="targetDamageType">
+              {{#each damageTypes}}
+              <option value="{{this.type}}">{{localize (concat "DSRESKINNER.DamageType." this.type)}}</option>
+              {{/each}}
+            </select>
+          </div>
+        </div>
+        
+        <div class="damage-preview" id="damage-preview">
+          <p class="preview-message">{{localize "DSRESKINNER.DamageTypePreview"}}</p>
+        </div>
+        
+        <div class="damage-validation" id="damage-validation">
+          <!-- Validation messages will be inserted here -->
+        </div>
+      </div>
+      
+      <div class="no-damage-types" id="no-damage-types" style="display: none;">
+        <p class="no-damage-message">{{localize "DSRESKINNER.NoDamageTypes"}}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Movement Types Section -->
+  <div class="form-group movement-type-section">
+    <div class="movement-type-header">
+      <button type="button" class="movement-type-toggle collapsed" id="movement-type-toggle">
+        <i class="fas fa-chevron-right"></i>
+        {{localize "DSRESKINNER.MovementTypes"}}
+      </button>
+    </div>
+    
+    <div class="movement-type-content" id="movement-type-content" style="display: none;">
+      <div class="movement-analysis" id="movement-analysis">
+        <p class="analyze-message">{{localize "DSRESKINNER.MovementTypeAnalyzing"}}</p>
+      </div>
+      
+      <div class="movement-type-controls" id="movement-type-controls" style="display: none;">
+        <div class="movement-types-custom-grid">
+          {{!-- Left column: Walk, Fly+Hover, Swim --}}
+          <div class="movement-column">
+            {{#each movementTypes}}
+              {{#if (eq this.type 'walk')}}
+                <label class="movement-type-checkbox">
+                  <input type="checkbox" name="movementTypes" value="walk" {{#if this.selected}}checked{{/if}}>
+                  {{localize "DSRESKINNER.MovementType.walk"}}
+                </label>
+              {{/if}}
+            {{/each}}
+            
+            {{#each movementTypes}}
+              {{#if (eq this.type 'fly')}}
+                {{!-- Fly + Hover on one row --}}
+                <div class="fly-hover-row">
+                  <label class="movement-type-checkbox">
+                    <input type="checkbox" name="movementTypes" value="fly" {{#if this.selected}}checked{{/if}}>
+                    {{localize "DSRESKINNER.MovementType.fly"}}
+                  </label>
+                  <label class="movement-type-checkbox">
+                    <input type="checkbox" name="hover" {{#if ../hover}}checked{{/if}}>
+                    {{localize "DSRESKINNER.MovementType.hover"}}
+                  </label>
+                </div>
+              {{/if}}
+            {{/each}}
+            
+            {{#each movementTypes}}
+              {{#if (eq this.type 'swim')}}
+                <label class="movement-type-checkbox">
+                  <input type="checkbox" name="movementTypes" value="swim" {{#if this.selected}}checked{{/if}}>
+                  {{localize "DSRESKINNER.MovementType.swim"}}
+                </label>
+              {{/if}}
+            {{/each}}
+          </div>
+          
+          {{!-- Right column: Burrow, Climb, Teleport --}}
+          <div class="movement-column">
+            {{#each movementTypes}}
+              {{#if (eq this.type 'burrow')}}
+                <label class="movement-type-checkbox">
+                  <input type="checkbox" name="movementTypes" value="burrow" {{#if this.selected}}checked{{/if}}>
+                  {{localize "DSRESKINNER.MovementType.burrow"}}
+                </label>
+              {{/if}}
+            {{/each}}
+            
+            {{#each movementTypes}}
+              {{#if (eq this.type 'climb')}}
+                <label class="movement-type-checkbox">
+                  <input type="checkbox" name="movementTypes" value="climb" {{#if this.selected}}checked{{/if}}>
+                  {{localize "DSRESKINNER.MovementType.climb"}}
+                </label>
+              {{/if}}
+            {{/each}}
+            
+            {{#each movementTypes}}
+              {{#if (eq this.type 'teleport')}}
+                <label class="movement-type-checkbox">
+                  <input type="checkbox" name="movementTypes" value="teleport" {{#if this.selected}}checked{{/if}}>
+                  {{localize "DSRESKINNER.MovementType.teleport"}}
+                </label>
+              {{/if}}
+            {{/each}}
+          </div>
+        </div>
+        
+        <div class="movement-validation" id="movement-validation">
+          <!-- Validation messages will be inserted here -->
+        </div>
+      </div>
+      
+      <div class="no-movement-types" id="no-movement-types" style="display: none;">
+        <p class="no-movement-message">{{localize "DSRESKINNER.NoMovementTypes"}}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Condition Swapping Section -->
+  <div class="form-group condition-swapping-section">
+    <div class="condition-swapping-header">
+      <button type="button" class="condition-swapping-toggle collapsed" id="condition-swapping-toggle">
+        <i class="fas fa-chevron-right"></i>
+        {{localize "DSRESKINNER.ConditionSwapping"}}
+      </button>
+    </div>
+    
+    <div class="condition-swapping-content" id="condition-swapping-content" style="display: none;">
+      <div class="condition-analysis" id="condition-analysis">
+        <p class="analyze-message">{{localize "DSRESKINNER.ConditionSwappingAnalyzing"}}</p>
+      </div>
+      
+      <div class="condition-swapping-controls" id="condition-swapping-controls" style="display: none;">
+        <div class="form-row-two-column">
+          <div class="form-item">
+            <label for="source-condition">{{localize "DSRESKINNER.SourceCondition"}}</label>
+            <select id="source-condition" name="sourceCondition">
+              <option value="">{{localize "DSRESKINNER.SelectCondition"}}</option>
+            </select>
+          </div>
+
+          <div class="form-item">
+            <label for="target-condition">{{localize "DSRESKINNER.TargetCondition"}}</label>
+            <select id="target-condition" name="targetCondition">
+              <option value="">{{localize "DSRESKINNER.SelectCondition"}}</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="condition-preview" id="condition-preview">
+          <p class="preview-message">{{localize "DSRESKINNER.ConditionPreview"}}</p>
+        </div>
+        
+        <div class="condition-validation" id="condition-validation">
+          <!-- Validation messages will be inserted here -->
+        </div>
+      </div>
+      
+      <div class="no-conditions" id="no-conditions" style="display: none;">
+        <p class="no-condition-message">{{localize "DSRESKINNER.NoConditions"}}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Signature Ability Swapping Section -->
+  <div class="form-group signature-ability-section">
+    <div class="signature-ability-header">
+      <button type="button" class="signature-ability-toggle collapsed" id="signature-ability-toggle">
+        <i class="fas fa-chevron-right"></i>
+        {{localize "DSRESKINNER.SignatureAbilitySwapping"}}
+      </button>
+    </div>
+    
+    <div class="signature-ability-content" id="signature-ability-content" style="display: none;">
+      <div class="signature-ability-analysis" id="signature-ability-analysis">
+        <p class="analyze-message">{{localize "DSRESKINNER.SignatureAbilityAnalyzing"}}</p>
+      </div>
+      
+      <div class="signature-ability-controls" id="signature-ability-controls" style="display: none;">
+        <div class="signature-abilities-list" id="signature-abilities-list">
+          <!-- Signature ability input fields will be dynamically generated here -->
+        </div>
+        
+        <div class="signature-ability-validation" id="signature-ability-validation">
+          <!-- Validation messages will be inserted here -->
+        </div>
+      </div>
+      
+      <div class="no-signature-abilities" id="no-signature-abilities" style="display: none;">
+        <p class="no-signature-ability-message">{{localize "DSRESKINNER.NoSignatureAbilities"}}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Level Adjustment Section -->
+  {{#if hasLevelAdjustment}}
+  <div class="form-group level-adjustment-section">
+    <div class="level-adjustment-header">
+      <button type="button" class="level-adjustment-toggle collapsed" id="level-adjustment-toggle">
+        <i class="fas fa-chevron-right"></i>
+        {{localize "DSRESKINNER.LevelAdjustment.Title"}}
+      </button>
+    </div>
+    
+    <div class="level-adjustment-content" id="level-adjustment-content" style="display: none;">
+      <!-- Balance Warning -->
+      <div class="balance-warning">
+        <p>{{localize "DSRESKINNER.LevelAdjustment.BalanceWarning"}}</p>
+      </div>
+
+      <!-- Level and Organization Row -->
+      <div class="control-row-two-column">
+        <!-- Level Input -->
+        <div class="control-item">
+          <label for="target-level">{{localize "DSRESKINNER.LevelAdjustment.LevelLabel"}}</label>
+          <input type="number" id="target-level" name="targetLevel" 
+                 value="{{system.monster.level}}" min="1" max="20" required>
+        </div>
+
+        <!-- Organization Selection -->
+        <div class="control-item">
+          <label for="monster-organization">{{localize "DSRESKINNER.LevelAdjustment.OrganizationLabel"}}</label>
+          <select id="monster-organization" name="organization" required>
+            {{#each availableOrganizations}}
+            <option value="{{this.value}}" {{#if (eq ../system.monster.organization this.value)}}selected{{/if}}>{{localize this.label}}</option>
+            {{/each}}
+            
+            
+          </select>
+        </div>
+      </div>
+
+      {{!-- Role Selection (commented out for now) --}}
+      {{!--
+      <div class="control-row">
+        <label for="monster-role">{{localize "DSRESKINNER.LevelAdjustment.RoleLabel"}}</label>
+        <select id="monster-role" name="role" required>
+          <option value="">{{localize "DSRESKINNER.LevelAdjustment.RoleValidationError"}}</option>
+          <option value="ambusher" {{#if (eq system.monster.role "ambusher")}}selected{{/if}}>{{localize "DSRESKINNER.LevelAdjustment.RoleAmbusher"}}</option>
+          <option value="artillery" {{#if (eq system.monster.role "artillery")}}selected{{/if}}>{{localize "DSRESKINNER.LevelAdjustment.RoleArtillery"}}</option>
+          <option value="brute" {{#if (eq system.monster.role "brute")}}selected{{/if}}>{{localize "DSRESKINNER.LevelAdjustment.RoleBrute"}}</option>
+          <option value="controller" {{#if (eq system.monster.role "controller")}}selected{{/if}}>{{localize "DSRESKINNER.LevelAdjustment.RoleController"}}</option>
+          <option value="defender" {{#if (eq system.monster.role "defender")}}selected{{/if}}>{{localize "DSRESKINNER.LevelAdjustment.RoleDefender"}}</option>
+          <option value="harrier" {{#if (eq system.monster.role "harrier")}}selected{{/if}}>{{localize "DSRESKINNER.LevelAdjustment.RoleHarrier"}}</option>
+          <option value="hexer" {{#if (eq system.monster.role "hexer")}}selected{{/if}}>{{localize "DSRESKINNER.LevelAdjustment.RoleHexer"}}</option>
+          <option value="mount" {{#if (eq system.monster.role "mount")}}selected{{/if}}>{{localize "DSRESKINNER.LevelAdjustment.RoleMount"}}</option>
+          <option value="support" {{#if (eq system.monster.role "support")}}selected{{/if}}>{{localize "DSRESKINNER.LevelAdjustment.RoleSupport"}}</option>
+          <option value="elite" {{#if (eq system.monster.role "elite")}}selected{{/if}}>{{localize "DSRESKINNER.LevelAdjustment.RoleElite"}}</option>
+          <option value="leader" {{#if (eq system.monster.role "leader")}}selected{{/if}}>{{localize "DSRESKINNER.LevelAdjustment.RoleLeader"}}</option>
+          <option value="solo" {{#if (eq system.monster.role "solo")}}selected{{/if}}>{{localize "DSRESKINNER.LevelAdjustment.RoleSolo"}}</option>
+        </select>
+      </div>
+--}}
+
+      <!-- Preview Section -->
+      <div class="level-preview" id="level-preview" style="display: none;">
+        <h3>{{localize "DSRESKINNER.LevelAdjustment.PreviewTitle"}}</h3>
+        <div class="preview-grid">
+          <div class="preview-item">
+            <span class="preview-label">{{localize "DSRESKINNER.LevelAdjustment.CurrentLevel"}}:</span>
+            <span class="preview-value" id="current-level-display">{{system.monster.level}}</span>
+          </div>
+          <div class="preview-item">
+            <span class="preview-label">{{localize "DSRESKINNER.LevelAdjustment.TargetLevel"}}:</span>
+            <span class="preview-value" id="target-level-display">{{system.monster.level}}</span>
+          </div>
+          <div class="preview-item">
+            <span class="preview-label">{{localize "DSRESKINNER.LevelAdjustment.EV"}}:</span>
+            <span class="preview-value" id="new-ev-display">-</span>
+          </div>
+          <div class="preview-item">
+            <span class="preview-label">{{localize "DSRESKINNER.LevelAdjustment.Stamina"}}:</span>
+            <span class="preview-value" id="new-stamina-display">-</span>
+          </div>
+          <div class="preview-item">
+            <span class="preview-label">{{localize "DSRESKINNER.LevelAdjustment.PowerRoll"}}:</span>
+            <span class="preview-value" id="power-roll-display">-</span>
+          </div>
+          <div class="preview-item">
+            <span class="preview-label">{{localize "DSRESKINNER.LevelAdjustment.ExampleDamage"}}:</span>
+            <span class="preview-value" id="example-damage-display">-</span>
+          </div>
+        </div>
+        </div>
+
+      
+
+      
+    </div>
+  </div>
+  {{else}}
+  <!-- Show error message if level data is missing -->
+  <div class="form-group level-data-missing">
+    <div class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{localize "DSRESKINNER.LevelAdjustment.DataMissingError"}}</p>
+    </div>
+  </div>
+  {{/if}}
+
+  <div class="form-group button-group">
+    <button type="submit" data-action="submit">
+      <i class="fas fa-save"></i>
+      {{localize "DSRESKINNER.SaveChanges"}}
+    </button>
+    <button type="button" data-action="cancel">
+      <i class="fas fa-times"></i>
+      {{localize "DSRESKINNER.Cancel"}}
+    </button>
+  </div>
+</section>

@@ -1,0 +1,57 @@
+{
+  "id": "ds-reskinner",
+  "title": "Draw Steel Reskinner",
+  "description": "A module for reskinning Draw Steel monsters with intuitive UI tools",
+  "version": "0.5.3",
+  "authors": [
+    {
+      "name": "stgreenb",
+      "flags": {}
+    }
+  ],
+  "url": "https://github.com/stgreenb/Reskinner",
+  "manifest": "https://github.com/stgreenb/Reskinner/releases/latest/download/module.json",
+  "download": "https://github.com/stgreenb/Reskinner/releases/latest/download/ds-reskinner.zip",
+  "license": "MIT",
+  "readme": "https://github.com/stgreenb/Reskinner/blob/main/README.md",
+  "bugs": "https://github.com/stgreenb/Reskinner/issues",
+  "changelog": "https://github.com/stgreenb/Reskinner/blob/main/CHANGELOG.md",
+  "compatibility": {
+    "minimum": "11",
+    "verified": "13",
+    "maximum": "13"
+  },
+  "relationships": {
+    "systems": [
+      {
+        "id": "draw-steel",
+        "type": "system",
+        "compatibility": {
+          "minimum": "0.9.0",
+          "verified": "0.9.0"
+        }
+      }
+    ],
+    "requires": [],
+    "conflicts": []
+  },
+  "esmodules": [
+    "ds-reskinner.mjs"
+  ],
+  "scripts": [],
+  "styles": [
+    "css/module.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "packs": [],
+  "socket": false,
+  "protected": false,
+  "coreTranslation": false,
+  "library": false
+}

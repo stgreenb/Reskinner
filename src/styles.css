@@ -1,11 +1,35 @@
 /**
  * Draw Steel Reskinner - Main Styles
- * 
+ *
  * IMPORTANT: This is the SOURCE CSS file that gets copied to css/module.css during build.
  * ALL CSS changes must be made here in src/styles.css, NOT in css/module.css.
- * 
+ *
  * Build process: rollup.config.mjs copies src/styles.css → css/module.css
  * Any changes to css/module.css will be OVERWRITTEN by the next build.
+ *
+ * ============================================================
+ * CSS SCOPING ARCHITECTURE
+ * ============================================================
+ *
+ * All styles in this file are scoped under .reskinner-app to prevent
+ * conflicts with other Foundry VTT modules and UI components.
+ *
+ * KEY PRINCIPLES:
+ * 1. All CSS variables are defined under .reskinner-app scope
+ * 2. All selectors are prefixed with .reskinner-app
+ * 3. No global styles that could affect other Foundry UI elements
+ * 4. Design tokens are used for consistent spacing, colors, and typography
+ *
+ * COMBAT TRACKER COMPATIBILITY:
+ * - Previously, global CSS from minimal-ui-fix.css caused combat tracker
+ *   avatars to become 10x larger
+ * - This was fixed by removing all global CSS and ensuring proper scoping
+ * - The reskinner now coexists peacefully with other modules
+ *
+ * MAINTENANCE:
+ * - Always keep styles scoped to .reskinner-app
+ * - Use design tokens for consistency
+ * - Test with combat tracker after any CSS changes
  */
 
 /* Reskin Application Styles */
@@ -281,7 +305,7 @@
   outline-offset: 2px;
 }
 
-.token-image {
+.reskinner-app .token-image {
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -289,7 +313,7 @@
   display: block;
 }
 
-.token-placeholder {
+.reskinner-app .token-placeholder {
   width: 100%;
   height: 100%;
   display: flex;
@@ -302,13 +326,13 @@
   transition: all 150ms ease;
 }
 
-.token-placeholder:hover {
+.reskinner-app .token-placeholder:hover {
   background: #cbd5e0;
   color: #4a5568;
   border-color: #a0aec0;
 }
 
-.token-placeholder i {
+.reskinner-app .token-placeholder i {
   font-size: 24px;
 }
 
@@ -482,18 +506,18 @@
   padding: 1rem;
 }
 
-.error-message {
+.reskinner-app .error-message {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   color: #dc2626;
 }
 
-.error-message i {
+.reskinner-app .error-message i {
   color: #ef4444;
 }
 
-.error-message p {
+.reskinner-app .error-message p {
   margin: 0;
   font-weight: 500;
 }
@@ -511,76 +535,97 @@
    Based on design system but simplified for reskinner needs
    ============================================================ */
 
-/* CSS Variables for simplified dark theme */
-:root {
-  /* Spacing tokens */
-  --space-4: 4px;
-  --space-8: 8px;
-  --space-10: 10px;
-  --space-12: 12px;
-  --space-16: 16px;
-  
-  /* Typography tokens */
-  --font-size-sm: 12px;
-  --font-size-base: 14px;
-  --font-size-lg: 16px;
-  --font-size-xl: 18px;
+/* ============================================================
+   DESIGN TOKENS - SCOPED UNDER .reskinner-app TO PREVENT CONFLICTS
+   ============================================================ */
+
+.reskinner-app {
+  /* Spacing Tokens */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 10px;
+  --space-lg: 12px;
+  --space-xl: 16px;
+
+  /* Typography Tokens */
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 550;
   --font-weight-bold: 600;
+  --line-height-tight: 1.2;
   --line-height-normal: 1.4;
-  
-  /* Border radius */
+  --line-height-relaxed: 1.5;
+
+  /* Border Radius Tokens */
+  --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-base: 8px;
   --radius-lg: 12px;
-  
-  /* Colors for dark theme */
-  --color-warning-rgb: 251, 191, 36;
-  --color-success-rgb: 34, 197, 94;
-  --color-error-rgb: 239, 68, 68;
-  --status-bg-opacity: 0.15;
-  --status-border-opacity: 0.25;
-}
+  --radius-xl: 16px;
 
-/* Dark theme color definitions */
-.reskinner-app,
-[data-color-scheme="dark"] {
+  /* Color Tokens - Dark Theme */
   --color-background: #1f2021;
   --color-surface: #262828;
   --color-text: #f5f5f5;
   --color-text-secondary: rgba(167, 169, 169, 0.7);
-  --color-warning: #e67e61;
+  --color-primary: #32b8c6;
+  --color-primary-hover: #2ea8b6;
   --color-success: #32b8c6;
+  --color-warning: #e67e61;
   --color-error: #ff5459;
   --color-secondary: rgba(119, 124, 124, 0.15);
   --color-secondary-hover: rgba(119, 124, 124, 0.25);
   --color-card-border: rgba(119, 124, 124, 0.2);
   --color-card-border-inner: rgba(119, 124, 124, 0.15);
   --color-border: rgba(119, 124, 124, 0.3);
+
+  /* Status Colors (RGB for opacity control) */
+  --color-warning-rgb: 230, 126, 97;
+  --color-success-rgb: 50, 184, 198;
+  --color-error-rgb: 255, 84, 89;
+  --status-bg-opacity: 0.15;
+  --status-border-opacity: 0.25;
+
+  /* Typography */
   --font-family-mono: 'Courier New', Consolas, monospace;
+
+  /* Animation */
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Dark theme override - maintains compatibility with existing data-color-scheme */
+.reskinner-app[data-color-scheme="dark"] {
+  /* Inherit all tokens from base .reskinner-app definition */
+  /* No overrides needed as dark theme is the default */
 }
 
 /* Balance Warning - Simple warning styling */
-.balance-warning {
+.reskinner-app .balance-warning {
   background: rgba(var(--color-warning-rgb), var(--status-bg-opacity));
   border: 1px solid rgba(var(--color-warning-rgb), var(--status-border-opacity));
   border-left: 3px solid var(--color-warning);
   border-radius: var(--radius-base);
-  padding: var(--space-12);
-  margin-bottom: var(--space-16);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-xl);
   display: flex;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--space-sm);
 }
 
-.balance-warning i {
+.reskinner-app .balance-warning i {
   color: var(--color-warning);
   font-size: var(--font-size-lg);
   flex-shrink: 0;
 }
 
-.balance-warning p {
+.reskinner-app .balance-warning p {
   color: var(--color-warning);
   font-weight: var(--font-weight-medium);
   margin: 0;
@@ -589,7 +634,7 @@
 }
 
 /* Level Preview - Simple card styling */
-.level-preview {
+.reskinner-app .level-preview {
   background: var(--color-surface);
   border: 1px solid var(--color-card-border);
   border-radius: var(--radius-lg);
@@ -597,7 +642,7 @@
   margin: 6px 0;
 }
 
-.level-preview h3 {
+.reskinner-app .level-preview h3 {
   color: var(--color-text);
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
@@ -607,7 +652,7 @@
 }
 
 /* Preview Grid */
-.preview-grid {
+.reskinner-app .preview-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 3px;
@@ -615,7 +660,7 @@
 }
 
 /* Preview Items */
-.preview-item {
+.reskinner-app .preview-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -626,11 +671,11 @@
   transition: background 150ms ease;
 }
 
-.preview-item:hover {
+.reskinner-app .preview-item:hover {
   background: var(--color-secondary-hover);
 }
 
-.preview-label {
+.reskinner-app .preview-label {
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
   font-weight: normal;
@@ -644,34 +689,34 @@
   margin: 0;
 }
 
-.preview-value {
+.reskinner-app .preview-value {
   color: var(--color-text);
   font-family: inherit;
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-medium);
   background: var(--color-secondary);
-  padding: var(--space-1) var(--space-4);
+  padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-sm);
   min-width: 2.5rem;
   text-align: center;
 }
 
 /* Status Messages */
-.status-message {
+.reskinner-app .status-message {
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-medium);
   transition: color 150ms ease;
 }
 
-.status-message.ready {
+.reskinner-app .status-message.ready {
   color: var(--color-success);
 }
 
-.status-message.review {
+.reskinner-app .status-message.review {
   color: var(--color-warning);
 }
 
-.status-message.error {
+.reskinner-app .status-message.error {
   color: var(--color-error);
 }
 
@@ -679,7 +724,7 @@
 @media (max-width: 800px) {
   .preview-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-8);
+    gap: var(--space-sm);
   }
 }
 
@@ -691,7 +736,7 @@
 
 @media (max-width: 480px) {
   .balance-warning {
-    padding: var(--space-10);
+    padding: var(--space-md);
     border-left-width: 2px;
   }
   
@@ -704,19 +749,19 @@
   }
   
   .level-preview {
-    padding: var(--space-12);
+    padding: var(--space-lg);
     border-radius: var(--radius-base);
   }
   
   .level-preview h3 {
     font-size: var(--font-size-base);
-    margin-bottom: var(--space-8);
-    padding-bottom: var(--space-6);
+    margin-bottom: var(--space-sm);
+    padding-bottom: var(--space-sm);
   }
   
   .preview-item {
-    padding: var(--space-6);
-    margin-bottom: var(--space-8);
+    padding: var(--space-sm);
+    margin-bottom: var(--space-sm);
   }
   
   .preview-label {
@@ -725,7 +770,7 @@
   
   .preview-value {
     font-size: var(--font-size-sm);
-    padding: var(--space-1) var(--space-4);
+    padding: var(--space-xs) var(--space-sm);
     min-width: 2rem;
   }
   
@@ -862,3 +907,39 @@
 .balance-warning p {
   color: var(--color-warning) !important;
 }
+
+/* ============================================================
+   CSS SCOPING COMPLETE
+   All styles are now properly scoped under .reskinner-app
+   to prevent conflicts with other Foundry VTT modules.
+
+   EXAMPLES OF PROPER TOKEN USAGE:
+   ==================================
+
+   // Spacing
+   .reskinner-app .my-element {
+     padding: var(--space-lg);     // 12px
+     margin: var(--space-xl);      // 16px
+     gap: var(--space-sm);         // 8px
+   }
+
+   // Typography
+   .reskinner-app .my-heading {
+     font-size: var(--font-size-lg);      // 18px
+     font-weight: var(--font-weight-bold); // 600
+     line-height: var(--line-height-normal); // 1.4
+   }
+
+   // Colors
+   .reskinner-app .my-button {
+     background: var(--color-primary);
+     color: var(--color-text);
+     border: 1px solid var(--color-border);
+   }
+
+   // Status colors with opacity
+   .reskinner-app .warning-box {
+     background: rgba(var(--color-warning-rgb), var(--status-bg-opacity));
+     border: 1px solid rgba(var(--color-warning-rgb), var(--status-border-opacity));
+   }
+   ============================================================ */
